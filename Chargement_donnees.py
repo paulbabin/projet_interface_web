@@ -22,8 +22,8 @@ st.title("🗺️ Carte des villes françaises > 20 000 habitants")
 # Préparer les données pour la carte
 if 'fields.coordinates' in df.columns:
     # Extraire latitude et longitude
-    df['latitude'] = df['fields.coordinates'].apply(lambda x: x[1] if isinstance(x, list) and len(x) >= 2 else None)
-    df['longitude'] = df['fields.coordinates'].apply(lambda x: x[0] if isinstance(x, list) and len(x) >= 2 else None)
+    df['latitude'] = df['fields.coordinates'].apply(lambda x: x[0] if isinstance(x, list) and len(x) >= 2 else None)
+    df['longitude'] = df['fields.coordinates'].apply(lambda x: x[1] if isinstance(x, list) and len(x) >= 2 else None)
 elif 'fields.latitude' in df.columns and 'fields.longitude' in df.columns:
     df['latitude'] = df['fields.latitude']
     df['longitude'] = df['fields.longitude']
