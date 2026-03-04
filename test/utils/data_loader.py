@@ -112,12 +112,19 @@ def load_cities_data() -> pd.DataFrame:
                     if departement_code == '75' and ville_name != 'Paris':
                         continue
                     
+                    # Ajouter le département entre parenthèses pour différencier les villes homonymes
+                    if ville_name and departement_code:
+                        ville_display = f"{ville_name} ({departement_code})"
+                    else:
+                        ville_display = ville_name
+                    
                     coordinates = fields.get('coordinates', [None, None])
                     lat = coordinates[0] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
                     lon = coordinates[1] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
 
                     all_rows.append({
-                        'ville': ville_name,
+                        'ville': ville_display,
+                        'ville_nom': ville_name,  # Nom original pour recherches
                         'population': fields.get('population'),
                         'region_code': fields.get('admin1_code'),
                         'departement_code': departement_code,
@@ -280,12 +287,15 @@ def get_city_wikipedia_summary(city_name: str) -> str:
     Récupère le résumé Wikipedia d'une ville
     """
     try:
-        url = f"https://fr.wikipedia.org/api/rest_v1/page/summary/{city_name}"
+        # Extraire le nom de la ville sans le département (retirer le format " (XX)")
+        ville_clean = re.sub(r'\s*\(\d+[A-Z]?\)$', '', city_name)
+        
+        url = f"https://fr.wikipedia.org/api/rest_v1/page/summary/{ville_clean}"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             return data.get('extract', 'Aucune description disponible')
-    except:
+    except Exception:
         pass
     
     return "Aucune description disponible"
