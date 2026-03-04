@@ -398,7 +398,7 @@ with tab5:
                 if 'weatherDesc' in current2 and len(current2['weatherDesc']) > 0:
                     st.info(f"☁️ {current2['weatherDesc'][0].get('value', 'N/A')}")
     
-    st.info("💡 Les données météo sont fournies par wttr.in et sont mises à jour en temps réel")
+    st.info("💡 Les coordonnées des villes proviennent d'OpenDataSoft, et la météo est fournie par Open-Meteo en temps réel")
 
 st.divider()
 st.markdown("""

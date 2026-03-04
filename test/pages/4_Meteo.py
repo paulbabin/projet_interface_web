@@ -241,9 +241,9 @@ if selected_city:
             st.dataframe(comp_df.set_index('Ville'), use_container_width=True)
 
 st.divider()
-st.info("💡 Les données météo sont fournies en temps réel par wttr.in. Pour des données climatiques annuelles, consultez Météo France.")
+st.info("💡 Les coordonnées des villes proviennent d'OpenDataSoft, et les données météo en temps réel proviennent d'Open-Meteo.")
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 1rem 0;'>
-    <p>📊 Source: wttr.in | Mise à jour en temps réel</p>
+    <p>📊 Source: OpenDataSoft + Open-Meteo | Mise à jour en temps réel</p>
 </div>
 """, unsafe_allow_html=True)
