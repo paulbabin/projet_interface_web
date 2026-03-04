@@ -28,8 +28,8 @@ def load_cities_data() -> pd.DataFrame:
         
         # Extraire les coordonnées correctement
         if 'fields.coordinates' in df.columns:
-            df['lat'] = df['fields.coordinates'].apply(lambda x: x[1] if isinstance(x, list) and len(x) >= 2 else None)
-            df['lon'] = df['fields.coordinates'].apply(lambda x: x[0] if isinstance(x, list) and len(x) >= 2 else None)
+            df['lat'] = df['fields.coordinates'].apply(lambda x: x[0] if isinstance(x, list) and len(x) >= 2 else None)
+            df['lon'] = df['fields.coordinates'].apply(lambda x: x[1] if isinstance(x, list) and len(x) >= 2 else None)
         
         # Renommer les colonnes importantes
         column_mapping = {
