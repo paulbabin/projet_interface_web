@@ -1,6 +1,7 @@
 """
 Module de chargement et de gestion des données pour l'application de comparaison de villes
 """
+import re
 import requests
 import pandas as pd
 import streamlit as st
@@ -54,22 +55,22 @@ def _fallback_weather_current() -> Dict:
         }]
     }
 
-def _normalize_city_name(city_name: str) -> str:
+
+def _is_arrondissement(ville_name: str) -> bool:
     """
-    Normalise le nom d'une ville en supprimant les arrondissements et quartiers
-    Ex: 'Paris 10e' -> 'Paris', 'Lyon 3e Arrondissement' -> 'Lyon'
+    Détecte si un nom de ville correspond à un arrondissement
+    Ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement", "Lyon 5e Arrondissement"
     """
-    import re
-    if not city_name:
-        return city_name
+    if not ville_name:
+        return False
     
-    # Supprimer les arrondissements (ex: Paris 10e, Lyon 3e)
-    city_name = re.sub(r'\s+\d+e?\s*(Arrondissement)?$', '', city_name, flags=re.IGNORECASE)
-    # Supprimer les quartiers entre parenthèses ou après un slash
-    city_name = re.sub(r'\s*/\s*.*$', '', city_name)
-    city_name = re.sub(r'\s*\(.*\)$', '', city_name)
+    # Pattern pour détecter les arrondissements: 
+    # - Commence par un nom de ville
+    # - Suivi d'un nombre avec "er" ou "e"
+    # - Finit par "Arrondissement" ou "arrondissement"
+    arrondissement_pattern = r'\s+\d+(er|e|ème)\s+(Arrondissement|arrondissement)'
     
-    return city_name.strip()
+    return bool(re.search(arrondissement_pattern, ville_name))
 
 
 @st.cache_data(ttl=3600)
@@ -77,7 +78,7 @@ def load_cities_data() -> pd.DataFrame:
     """
     Charge les données des villes françaises > 20 000 habitants depuis OpenDataSoft
     Inclut la France métropolitaine et les DOM-TOM
-    Regroupe les arrondissements d'une même ville (ex: Paris 10e -> Paris)
+    Filtre les arrondissements pour ne garder que les villes principales
     """
     all_rows = []
     
@@ -93,15 +94,26 @@ def load_cities_data() -> pd.DataFrame:
 
                 for record in records:
                     fields = record.get('fields', {})
+                    ville_name = fields.get('name')
+                    departement_code = fields.get('admin2_code')
+                    
+                    # Filtrer les arrondissements (ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement")
+                    if ville_name and _is_arrondissement(ville_name):
+                        continue
+                    
+                    # Exception pour le département 75 : ne garder que Paris
+                    if departement_code == '75' and ville_name != 'Paris':
+                        continue
+                    
                     coordinates = fields.get('coordinates', [None, None])
                     lat = coordinates[0] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
                     lon = coordinates[1] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
 
                     all_rows.append({
-                        'ville': fields.get('name'),
+                        'ville': ville_name,
                         'population': fields.get('population'),
                         'region_code': fields.get('admin1_code'),
-                        'departement_code': fields.get('admin2_code'),
+                        'departement_code': departement_code,
                         'pays': fields.get('country_code'),
                         'timezone': fields.get('timezone'),
                         'altitude': fields.get('dem'),
@@ -113,31 +125,7 @@ def load_cities_data() -> pd.DataFrame:
                 st.warning(f"Impossible de charger les données pour {country_code}: {e}")
                 continue
 
-        df = pd.DataFrame(all_rows)
-        
-        if df.empty:
-            return df
-        
-        # Normaliser les noms de villes et regrouper les arrondissements
-        df['ville_normalisee'] = df['ville'].apply(_normalize_city_name)
-        
-        # Grouper par ville normalisée et agréger les données
-        df_grouped = df.groupby('ville_normalisee').agg({
-            'population': 'sum',  # Somme des populations
-            'region_code': 'first',
-            'departement_code': 'first',
-            'pays': 'first',
-            'timezone': 'first',
-            'altitude': 'mean',  # Altitude moyenne
-            'lat': 'mean',  # Coordonnées moyennes
-            'lon': 'mean'
-        }).reset_index()
-        
-        # Renommer la colonne normalisée en 'ville'
-        df_grouped.rename(columns={'ville_normalisee': 'ville'}, inplace=True)
-        
-        return df_grouped
-        
+        return pd.DataFrame(all_rows)
     except Exception as e:
         st.error(f"Erreur lors du chargement des villes: {e}")
         return pd.DataFrame()
