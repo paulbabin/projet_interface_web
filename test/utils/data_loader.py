@@ -59,18 +59,25 @@ def _fallback_weather_current() -> Dict:
 def _is_arrondissement(ville_name: str) -> bool:
     """
     Détecte si un nom de ville correspond à un arrondissement
-    Ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement", "Lyon 5e Arrondissement"
+    Ex: "Paris 10e Arrondissement", "Marseille 01", "Lyon 03"
     """
     if not ville_name:
         return False
     
-    # Pattern pour détecter les arrondissements: 
-    # - Commence par un nom de ville
-    # - Suivi d'un nombre avec "er" ou "e"
-    # - Finit par "Arrondissement" ou "arrondissement"
+    # Pattern 1: Format complet avec "Arrondissement"
+    # Ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement"
     arrondissement_pattern = r'\s+\d+(er|e|ème)\s+(Arrondissement|arrondissement)'
+    if re.search(arrondissement_pattern, ville_name):
+        return True
     
-    return bool(re.search(arrondissement_pattern, ville_name))
+    # Pattern 2: Format court avec deux chiffres
+    # Ex: "Marseille 01", "Lyon 03", "Paris 15"
+    # Vérifie que c'est bien une grande ville suivie de 01-20 (arrondissements)
+    short_pattern = r'^(Paris|Marseille|Lyon)\s+\d{2}$'
+    if re.search(short_pattern, ville_name):
+        return True
+    
+    return False
 
 
 @st.cache_data(ttl=3600)
