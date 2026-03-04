@@ -6,7 +6,10 @@ import pandas as pd
 import streamlit as st
 from typing import Dict, List, Optional
 
-CITIES_API_URL = "https://public.opendatasoft.com/api/records/1.0/search/?dataset=geonames-all-cities-with-a-population-1000&q=population>20000&rows=1000&refine.country_code=FR"
+# URL de base pour l'API des villes (sans le filtre de pays)
+CITIES_API_BASE_URL = "https://public.opendatasoft.com/api/records/1.0/search/?dataset=geonames-all-cities-with-a-population-1000&q=population>20000&rows=1000"
+# Codes pays pour la France et les DOM-TOM
+FRANCE_TERRITORIES = ['FR', 'GP', 'MQ', 'GF', 'RE', 'YT', 'NC', 'PF', 'PM', 'WF', 'BL', 'MF']
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 
@@ -51,37 +54,90 @@ def _fallback_weather_current() -> Dict:
         }]
     }
 
+def _normalize_city_name(city_name: str) -> str:
+    """
+    Normalise le nom d'une ville en supprimant les arrondissements et quartiers
+    Ex: 'Paris 10e' -> 'Paris', 'Lyon 3e Arrondissement' -> 'Lyon'
+    """
+    import re
+    if not city_name:
+        return city_name
+    
+    # Supprimer les arrondissements (ex: Paris 10e, Lyon 3e)
+    city_name = re.sub(r'\s+\d+e?\s*(Arrondissement)?$', '', city_name, flags=re.IGNORECASE)
+    # Supprimer les quartiers entre parenthèses ou après un slash
+    city_name = re.sub(r'\s*/\s*.*$', '', city_name)
+    city_name = re.sub(r'\s*\(.*\)$', '', city_name)
+    
+    return city_name.strip()
+
+
 @st.cache_data(ttl=3600)
 def load_cities_data() -> pd.DataFrame:
     """
     Charge les données des villes françaises > 20 000 habitants depuis OpenDataSoft
+    Inclut la France métropolitaine et les DOM-TOM
+    Regroupe les arrondissements d'une même ville (ex: Paris 10e -> Paris)
     """
+    all_rows = []
+    
     try:
-        response = requests.get(CITIES_API_URL, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        records = data.get('records', [])
-        rows = []
+        # Requête pour chaque territoire français
+        for country_code in FRANCE_TERRITORIES:
+            url = f"{CITIES_API_BASE_URL}&refine.country_code={country_code}"
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                records = data.get('records', [])
 
-        for record in records:
-            fields = record.get('fields', {})
-            coordinates = fields.get('coordinates', [None, None])
-            lat = coordinates[0] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
-            lon = coordinates[1] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
+                for record in records:
+                    fields = record.get('fields', {})
+                    coordinates = fields.get('coordinates', [None, None])
+                    lat = coordinates[0] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
+                    lon = coordinates[1] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
 
-            rows.append({
-                'ville': fields.get('name'),
-                'population': fields.get('population'),
-                'region_code': fields.get('admin1_code'),
-                'departement_code': fields.get('admin2_code'),
-                'pays': fields.get('country_code'),
-                'timezone': fields.get('timezone'),
-                'altitude': fields.get('dem'),
-                'lat': lat,
-                'lon': lon
-            })
+                    all_rows.append({
+                        'ville': fields.get('name'),
+                        'population': fields.get('population'),
+                        'region_code': fields.get('admin1_code'),
+                        'departement_code': fields.get('admin2_code'),
+                        'pays': fields.get('country_code'),
+                        'timezone': fields.get('timezone'),
+                        'altitude': fields.get('dem'),
+                        'lat': lat,
+                        'lon': lon
+                    })
+            except Exception as e:
+                # Continue même si un territoire échoue
+                st.warning(f"Impossible de charger les données pour {country_code}: {e}")
+                continue
 
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(all_rows)
+        
+        if df.empty:
+            return df
+        
+        # Normaliser les noms de villes et regrouper les arrondissements
+        df['ville_normalisee'] = df['ville'].apply(_normalize_city_name)
+        
+        # Grouper par ville normalisée et agréger les données
+        df_grouped = df.groupby('ville_normalisee').agg({
+            'population': 'sum',  # Somme des populations
+            'region_code': 'first',
+            'departement_code': 'first',
+            'pays': 'first',
+            'timezone': 'first',
+            'altitude': 'mean',  # Altitude moyenne
+            'lat': 'mean',  # Coordonnées moyennes
+            'lon': 'mean'
+        }).reset_index()
+        
+        # Renommer la colonne normalisée en 'ville'
+        df_grouped.rename(columns={'ville_normalisee': 'ville'}, inplace=True)
+        
+        return df_grouped
+        
     except Exception as e:
         st.error(f"Erreur lors du chargement des villes: {e}")
         return pd.DataFrame()
