@@ -17,9 +17,13 @@ from utils.data_loader import (
     get_city_wikipedia_summary
 )
 
-st.set_page_config(page_title="Données Générales", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Données Générales", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("📊 Données Générales")
+from utils.navbar import inject_navbar_css, render_navbar
+inject_navbar_css()
+render_navbar("Données")
+
+st.title("Données Générales")
 st.markdown("Informations détaillées sur les villes françaises")
 
 # Chargement des données

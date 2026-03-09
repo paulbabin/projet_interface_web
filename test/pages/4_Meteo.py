@@ -17,9 +17,13 @@ from utils.data_loader import (
     get_weather_forecast
 )
 
-st.set_page_config(page_title="Météo", page_icon="🌤️", layout="wide")
+st.set_page_config(page_title="Météo", page_icon="🌤️", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("🌤️ Météo et Climat")
+from utils.navbar import inject_navbar_css, render_navbar
+inject_navbar_css()
+render_navbar("Météo")
+
+st.title("Météo et Climat")
 st.markdown("Conditions météorologiques actuelles et prévisions")
 
 # Chargement des données

@@ -17,9 +17,13 @@ from utils.data_loader import (
     generate_mock_employment_data
 )
 
-st.set_page_config(page_title="Emploi", page_icon="💼", layout="wide")
+st.set_page_config(page_title="Emploi", page_icon="💼", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("💼 Emploi et Chômage")
+from utils.navbar import inject_navbar_css, render_navbar
+inject_navbar_css()
+render_navbar("Emploi")
+
+st.title("Emploi et Chômage")
 st.markdown("Analyse des données d'emploi des villes françaises")
 
 # Chargement des données

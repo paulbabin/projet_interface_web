@@ -17,9 +17,13 @@ from utils.data_loader import (
     generate_mock_housing_data
 )
 
-st.set_page_config(page_title="Logement", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="Logement", page_icon="🏠", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("🏠 Logement et Immobilier")
+from utils.navbar import inject_navbar_css, render_navbar
+inject_navbar_css()
+render_navbar("Logement")
+
+st.title("Logement et Immobilier")
 st.markdown("Analyse du marché du logement dans les villes françaises")
 
 # Chargement des données

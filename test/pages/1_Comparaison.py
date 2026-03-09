@@ -18,9 +18,13 @@ from utils.data_loader import (
     get_weather_current
 )
 
-st.set_page_config(page_title="Comparaison de Villes", page_icon="🔄", layout="wide")
+st.set_page_config(page_title="Comparaison de Villes", page_icon="🔄", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("🔄 Comparaison de Villes")
+from utils.navbar import inject_navbar_css, render_navbar
+inject_navbar_css()
+render_navbar("Comparaison")
+
+st.title("Comparaison de Villes")
 st.markdown("Sélectionnez deux villes pour les comparer sur différents critères")
 
 # Chargement des données
