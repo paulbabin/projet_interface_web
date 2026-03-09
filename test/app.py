@@ -10,7 +10,7 @@ from pathlib import Path
 
 # Ajouter le répertoire parent au path pour importer utils
 sys.path.append(str(Path(__file__).parent))
-from utils.data_loader import load_cities_data, get_city_list
+from utils.data_loader import load_cities_data
 from utils.navbar import inject_navbar_css, render_navbar
 
 # Configuration de la page
@@ -45,155 +45,102 @@ if df_cities.empty:
     st.error("❌ Impossible de charger les données des villes")
     st.stop()
 
-# ===== Filtre de population (inline) =====
-if 'population' in df_cities.columns:
-    min_pop = int(df_cities['population'].min())
-    max_pop = int(df_cities['population'].max())
+# ===== Données complètes (sans filtre) =====
+df_filtered = df_cities
 
-    col_filter1, col_filter2 = st.columns([3, 1])
-    with col_filter1:
-        pop_range = st.slider(
-            "Filtrer par population",
-            min_value=min_pop,
-            max_value=max_pop,
-            value=(min_pop, max_pop),
-            step=10000,
-            format="%d"
+# ===== Contenu principal (sans onglets) =====
+st.header("Statistiques")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "Villes affichées",
+        f"{len(df_filtered):,}",
+        delta=f"{len(df_filtered) - len(df_cities)}" if len(df_filtered) != len(df_cities) else None
+    )
+
+if 'population' in df_filtered.columns:
+    with col2:
+        st.metric("Population totale", f"{int(df_filtered['population'].sum()):,}")
+
+    with col3:
+        st.metric(
+            "Plus grande ville",
+            df_filtered.loc[df_filtered['population'].idxmax(), 'ville'] if 'ville' in df_filtered.columns else "N/A",
+            f"{int(df_filtered['population'].max()):,} hab."
         )
-    with col_filter2:
-        st.markdown("")
-        nb_filtered = len(df_cities[(df_cities['population'] >= pop_range[0]) & (df_cities['population'] <= pop_range[1])])
-        st.info(f"**{nb_filtered}** villes affichées")
 
-    df_filtered = df_cities[
-        (df_cities['population'] >= pop_range[0]) &
-        (df_cities['population'] <= pop_range[1])
-    ]
+    with col4:
+        st.metric(
+            "Plus petite ville",
+            df_filtered.loc[df_filtered['population'].idxmin(), 'ville'] if 'ville' in df_filtered.columns else "N/A",
+            f"{int(df_filtered['population'].min()):,} hab."
+        )
+
+st.divider()
+st.header("Carte des Villes Françaises")
+
+if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
+    fig = px.scatter_mapbox(
+        df_filtered,
+        lat='lat',
+        lon='lon',
+        hover_name='ville' if 'ville' in df_filtered.columns else None,
+        hover_data={
+            'population': ':,',
+            'lat': ':.4f',
+            'lon': ':.4f'
+        } if 'population' in df_filtered.columns else None,
+        size='population' if 'population' in df_filtered.columns else None,
+        color='population' if 'population' in df_filtered.columns else None,
+        color_continuous_scale='Blues',
+        size_max=30,
+        zoom=5,
+        height=600,
+    )
+
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        margin={"r":0,"t":0,"l":0,"b":0},
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Inter'),
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 else:
-    df_filtered = df_cities
+    st.warning("⚠️ Coordonnées géographiques non disponibles pour la carte")
 
-# ===== Contenu principal =====
-tab1, tab2, tab3 = st.tabs(["🗺️ Carte Interactive", "📊 Statistiques", "📋 Liste des Villes"])
+if 'population' in df_filtered.columns:
+    st.divider()
 
-with tab1:
-    st.header("Carte des Villes Françaises")
-
-    if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
-        fig = px.scatter_mapbox(
-            df_filtered,
-            lat='lat',
-            lon='lon',
-            hover_name='ville' if 'ville' in df_filtered.columns else None,
-            hover_data={
-                'population': ':,',
-                'lat': ':.4f',
-                'lon': ':.4f'
-            } if 'population' in df_filtered.columns else None,
-            size='population' if 'population' in df_filtered.columns else None,
-            color='population' if 'population' in df_filtered.columns else None,
-            color_continuous_scale='Blues',
-            size_max=30,
-            zoom=5,
-            height=600,
+    st.subheader("Top 10 des villes")
+    if 'ville' in df_filtered.columns:
+        top10 = df_filtered.nlargest(10, 'population')[['ville', 'population']]
+        fig_bar = px.bar(
+            top10,
+            x='population',
+            y='ville',
+            orientation='h',
+            title="Top 10 des villes les plus peuplées",
+            labels={'population': 'Population', 'ville': 'Ville'},
+            color_discrete_sequence=['#3b82f6']
         )
-
-        fig.update_layout(
-            mapbox_style="carto-positron",
-            margin={"r":0,"t":0,"l":0,"b":0},
+        fig_bar.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter'),
+            font=dict(family='Inter', color='#1e293b'),
+            title_font=dict(size=14),
+            xaxis=dict(gridcolor='#f1f5f9'),
+            yaxis=dict(gridcolor='#f1f5f9')
         )
+        st.plotly_chart(fig_bar, use_container_width=True)
 
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("⚠️ Coordonnées géographiques non disponibles pour la carte")
+    st.divider()
+    st.subheader("Tableau des villes")
 
-    if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
-        with st.expander("Vue alternative (carte simple)"):
-            st.map(df_filtered[['lat', 'lon']].dropna())
-
-with tab2:
-    st.header("Statistiques")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric(
-            "Villes affichées",
-            f"{len(df_filtered):,}",
-            delta=f"{len(df_filtered) - len(df_cities)}" if len(df_filtered) != len(df_cities) else None
-        )
-
-    if 'population' in df_filtered.columns:
-        with col2:
-            st.metric("Population totale", f"{int(df_filtered['population'].sum()):,}")
-
-        with col3:
-            st.metric(
-                "Plus grande ville",
-                df_filtered.loc[df_filtered['population'].idxmax(), 'ville'] if 'ville' in df_filtered.columns else "N/A",
-                f"{int(df_filtered['population'].max()):,} hab."
-            )
-
-        with col4:
-            st.metric(
-                "Plus petite ville",
-                df_filtered.loc[df_filtered['population'].idxmin(), 'ville'] if 'ville' in df_filtered.columns else "N/A",
-                f"{int(df_filtered['population'].min()):,} hab."
-            )
-
-        st.divider()
-
-        col_left, col_right = st.columns(2)
-
-        with col_left:
-            st.subheader("Distribution de la population")
-            fig_hist = px.histogram(
-                df_filtered,
-                x='population',
-                nbins=30,
-                title="Répartition des villes par population",
-                labels={'population': 'Population', 'count': 'Nombre de villes'},
-                color_discrete_sequence=['#2563eb']
-            )
-            fig_hist.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(family='Inter', color='#1e293b'),
-                title_font=dict(size=14),
-                xaxis=dict(gridcolor='#f1f5f9'),
-                yaxis=dict(gridcolor='#f1f5f9')
-            )
-            st.plotly_chart(fig_hist, use_container_width=True)
-
-        with col_right:
-            st.subheader("Top 10 des villes")
-            if 'ville' in df_filtered.columns:
-                top10 = df_filtered.nlargest(10, 'population')[['ville', 'population']]
-                fig_bar = px.bar(
-                    top10,
-                    x='population',
-                    y='ville',
-                    orientation='h',
-                    title="Top 10 des villes les plus peuplées",
-                    labels={'population': 'Population', 'ville': 'Ville'},
-                    color_discrete_sequence=['#3b82f6']
-                )
-                fig_bar.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(family='Inter', color='#1e293b'),
-                    title_font=dict(size=14),
-                    xaxis=dict(gridcolor='#f1f5f9'),
-                    yaxis=dict(gridcolor='#f1f5f9')
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
-
-with tab3:
-    st.header("Liste des Villes")
-
-    search = st.text_input("Rechercher une ville", placeholder="Entrez le nom d'une ville...")
+    search = st.text_input("Rechercher une ville", placeholder="Entrez le nom d'une ville...", key="search_stats")
 
     if search:
         df_display = df_filtered[df_filtered['ville'].str.contains(search, case=False, na=False)] if 'ville' in df_filtered.columns else df_filtered
@@ -216,23 +163,23 @@ with tab3:
         st.dataframe(
             df_display[display_columns].sort_values('population', ascending=False) if 'population' in display_columns else df_display[display_columns],
             use_container_width=True,
-            height=500
+            height=400
         )
     else:
-        st.dataframe(df_display, use_container_width=True, height=500)
+        st.dataframe(df_display, use_container_width=True, height=400)
 
     csv = df_display.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Télécharger les données (CSV)",
         data=csv,
         file_name="villes_francaises.csv",
-        mime="text/csv"
+        mime="text/csv",
+        key="download_stats"
     )
 
 # Footer
 st.markdown("""
 <div class="site-footer">
-    <p>Projet réalisé dans le cadre du cours de Programmation Web</p>
     <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
 </div>
 """, unsafe_allow_html=True)

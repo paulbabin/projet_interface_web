@@ -23,15 +23,24 @@ from utils.navbar import inject_navbar_css, render_navbar
 inject_navbar_css()
 render_navbar("Logement")
 
-st.title("Logement et Immobilier")
-st.markdown("Analyse du marché du logement dans les villes françaises")
+st.markdown("""
+<div style="text-align:center; padding:1.5rem 0 0.5rem 0;">
+    <h1 style="font-size:2.2rem; font-weight:700; color:#1e293b; margin:0; letter-spacing:-1px;">
+        Logement et immobilier
+    </h1>
+    <p style="color:#64748b; font-size:1.05rem; margin-top:0.5rem;">
+        Analyse du marché du logement dans les villes françaises
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # Chargement des données
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
+default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
 # Sélection de ville
-selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list)
+selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
     city_info = get_city_info(df_cities, selected_city)
@@ -222,5 +231,8 @@ if selected_city:
         st.success(f"💰 **Prix estimé**: {prix_estime:,.0f} €")
         st.info(f"📊 Soit {housing_data['prix_moyen_m2']:,.0f} €/m² pour {surface} m²")
 
-st.divider()
-st.info("💡 Note: Les données immobilières sont simulées. En production, utiliser les données DVF (Demandes de Valeurs Foncières) et l'API data.gouv.fr.")
+st.markdown("""
+<div class="site-footer">
+    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
+</div>
+""", unsafe_allow_html=True)

@@ -191,11 +191,11 @@ def render_navbar(active_page="Accueil"):
 
     pages = [
         ("Accueil", "app.py"),
+        ("Focus ville", "pages/5_Donnees_Generales.py"),
         ("Comparaison", "pages/1_Comparaison.py"),
         ("Emploi", "pages/2_Emploi.py"),
         ("Logement", "pages/3_Logement.py"),
         ("Météo", "pages/4_Meteo.py"),
-        ("Données", "pages/5_Donnees_Generales.py"),
     ]
 
     for col, (label, page_path) in zip(link_cols, pages):

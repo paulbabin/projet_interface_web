@@ -17,21 +17,22 @@ from utils.data_loader import (
     get_city_wikipedia_summary
 )
 
-st.set_page_config(page_title="Données Générales", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Focus sur une ville", page_icon="🎯", layout="wide", initial_sidebar_state="collapsed")
 
 from utils.navbar import inject_navbar_css, render_navbar
 inject_navbar_css()
-render_navbar("Données")
+render_navbar("Focus sur une ville")
 
-st.title("Données Générales")
+st.title("Focus sur une ville")
 st.markdown("Informations détaillées sur les villes françaises")
 
 # Chargement des données
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
+default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
 # Sélection de ville
-selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list)
+selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
     city_info = get_city_info(df_cities, selected_city)
@@ -54,49 +55,30 @@ if selected_city:
         st.subheader("📍 Informations Principales")
         
         col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if 'population' in city_info:
-                st.metric(
-                    "👥 Population",
-                    f"{int(city_info['population']):,}",
-                    help="Nombre d'habitants"
-                )
-            
-            if 'altitude' in city_info and city_info['altitude']:
-                st.metric(
-                    "⛰️ Altitude",
-                    f"{int(city_info['altitude'])} m",
-                    help="Altitude moyenne"
-                )
-        
+
         with col2:
-            if 'departement_code' in city_info:
-                st.metric(
-                    "📮 Département",
-                    city_info['departement_code'],
-                    help="Code département"
-                )
-            
-            if 'region_code' in city_info and city_info['region_code']:
-                st.metric(
-                    "🗺️ Région",
-                    city_info['region_code'],
-                    help="Code région"
-                )
-        
+            population_value = f"{int(city_info['population']):,}" if 'population' in city_info and pd.notna(city_info['population']) else "N/A"
+            st.metric(
+                "👥 Population",
+                population_value,
+                help="Nombre d'habitants"
+            )
+
         with col3:
-            if 'lat' in city_info and 'lon' in city_info:
-                st.metric(
-                    "📍 Latitude",
-                    f"{city_info['lat']:.4f}",
-                    help="Coordonnée latitude"
-                )
-                st.metric(
-                    "📍 Longitude",
-                    f"{city_info['lon']:.4f}",
-                    help="Coordonnée longitude"
-                )
+            altitude_value = f"{int(city_info['altitude'])} m" if 'altitude' in city_info and pd.notna(city_info['altitude']) else "N/A"
+            st.metric(
+                "⛰️ Altitude",
+                altitude_value,
+                help="Altitude moyenne"
+            )
+
+        with col1:
+            departement_value = city_info['departement_code'] if 'departement_code' in city_info and pd.notna(city_info['departement_code']) else "N/A"
+            st.metric(
+                "📮 Département",
+                departement_value,
+                help="Code département"
+            )
         
         st.divider()
         
@@ -233,14 +215,9 @@ if selected_city:
                     help="Part de la population totale des grandes villes"
                 )
         
-        # Toutes les données brutes
-        with st.expander("🔍 Voir toutes les données brutes"):
-            st.json(city_info.to_dict())
-
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 1rem 0;'>
-    <p>📊 Sources: OpenDataSoft, Wikipedia, Open Data France</p>
-    <p>🔄 Données mises à jour régulièrement</p>
+    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
 </div>
 """, unsafe_allow_html=True)

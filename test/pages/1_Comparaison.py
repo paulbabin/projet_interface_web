@@ -24,8 +24,16 @@ from utils.navbar import inject_navbar_css, render_navbar
 inject_navbar_css()
 render_navbar("Comparaison")
 
-st.title("Comparaison de Villes")
-st.markdown("Sélectionnez deux villes pour les comparer sur différents critères")
+st.markdown("""
+<div style="text-align:center; padding:1.5rem 0 0.5rem 0;">
+    <h1 style="font-size:2.2rem; font-weight:700; color:#1e293b; margin:0; letter-spacing:-1px;">
+        Comparaison de villes
+    </h1>
+    <p style="color:#64748b; font-size:1.05rem; margin-top:0.5rem;">
+        Comparez deux villes françaises sur la démographie, l'emploi, le logement et la météo
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # Chargement des données
 df_cities = load_cities_data()
@@ -39,6 +47,9 @@ if not city_list:
     st.error("❌ Aucune ville disponible")
     st.stop()
 
+default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
+default_city2_index = (default_city_index + 1) % len(city_list) if len(city_list) > 1 else default_city_index
+
 # Sélection des villes
 col1, col2 = st.columns(2)
 
@@ -47,13 +58,12 @@ with col1:
     city1 = st.selectbox(
         "Choisissez la première ville",
         options=city_list,
+        index=default_city_index,
         key="city1"
     )
 
 with col2:
     st.subheader("🏙️ Ville 2")
-    # Par défaut, sélectionner une ville différente
-    default_city2_index = min(1, len(city_list) - 1)
     city2 = st.selectbox(
         "Choisissez la deuxième ville",
         options=city_list,
@@ -404,9 +414,8 @@ with tab5:
     
     st.info("💡 Les coordonnées des villes proviennent d'OpenDataSoft, et la météo est fournie par Open-Meteo en temps réel")
 
-st.divider()
 st.markdown("""
-<div style='text-align: center; color: #666;'>
-    <p>💡 Astuce: Utilisez les onglets ci-dessus pour explorer différents aspects de la comparaison</p>
+<div class="site-footer">
+    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
 </div>
 """, unsafe_allow_html=True)

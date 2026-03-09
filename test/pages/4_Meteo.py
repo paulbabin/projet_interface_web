@@ -23,15 +23,24 @@ from utils.navbar import inject_navbar_css, render_navbar
 inject_navbar_css()
 render_navbar("Météo")
 
-st.title("Météo et Climat")
-st.markdown("Conditions météorologiques actuelles et prévisions")
+st.markdown("""
+<div style="text-align:center; padding:1.5rem 0 0.5rem 0;">
+    <h1 style="font-size:2.2rem; font-weight:700; color:#1e293b; margin:0; letter-spacing:-1px;">
+        Météo et climat
+    </h1>
+    <p style="color:#64748b; font-size:1.05rem; margin-top:0.5rem;">
+        Conditions météo actuelles et prévisions des villes françaises
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # Chargement des données
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
+default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
 # Sélection de ville
-selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list)
+selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
     st.header(f"🌤️ Météo - {selected_city}")
@@ -244,10 +253,8 @@ if selected_city:
             # Tableau de comparaison
             st.dataframe(comp_df.set_index('Ville'), use_container_width=True)
 
-st.divider()
-st.info("💡 Les coordonnées des villes proviennent d'OpenDataSoft, et les données météo en temps réel proviennent d'Open-Meteo.")
 st.markdown("""
-<div style='text-align: center; color: #666; padding: 1rem 0;'>
-    <p>📊 Source: OpenDataSoft + Open-Meteo | Mise à jour en temps réel</p>
+<div class="site-footer">
+    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
 </div>
 """, unsafe_allow_html=True)
