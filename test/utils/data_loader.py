@@ -1,6 +1,7 @@
 """
 Module de chargement et de gestion des données pour l'application de comparaison de villes
 """
+import re
 import requests
 import pandas as pd
 import streamlit as st
@@ -54,22 +55,29 @@ def _fallback_weather_current() -> Dict:
         }]
     }
 
-def _normalize_city_name(city_name: str) -> str:
+
+def _is_arrondissement(ville_name: str) -> bool:
     """
-    Normalise le nom d'une ville en supprimant les arrondissements et quartiers
-    Ex: 'Paris 10e' -> 'Paris', 'Lyon 3e Arrondissement' -> 'Lyon'
+    Détecte si un nom de ville correspond à un arrondissement
+    Ex: "Paris 10e Arrondissement", "Marseille 01", "Lyon 03"
     """
-    import re
-    if not city_name:
-        return city_name
+    if not ville_name:
+        return False
     
-    # Supprimer les arrondissements (ex: Paris 10e, Lyon 3e)
-    city_name = re.sub(r'\s+\d+e?\s*(Arrondissement)?$', '', city_name, flags=re.IGNORECASE)
-    # Supprimer les quartiers entre parenthèses ou après un slash
-    city_name = re.sub(r'\s*/\s*.*$', '', city_name)
-    city_name = re.sub(r'\s*\(.*\)$', '', city_name)
+    # Pattern 1: Format complet avec "Arrondissement"
+    # Ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement"
+    arrondissement_pattern = r'\s+\d+(er|e|ème)\s+(Arrondissement|arrondissement)'
+    if re.search(arrondissement_pattern, ville_name):
+        return True
     
-    return city_name.strip()
+    # Pattern 2: Format court avec deux chiffres
+    # Ex: "Marseille 01", "Lyon 03", "Paris 15"
+    # Vérifie que c'est bien une grande ville suivie de 01-20 (arrondissements)
+    short_pattern = r'^(Paris|Marseille|Lyon)\s+\d{2}$'
+    if re.search(short_pattern, ville_name):
+        return True
+    
+    return False
 
 
 @st.cache_data(ttl=3600)
@@ -77,7 +85,7 @@ def load_cities_data() -> pd.DataFrame:
     """
     Charge les données des villes françaises > 20 000 habitants depuis OpenDataSoft
     Inclut la France métropolitaine et les DOM-TOM
-    Regroupe les arrondissements d'une même ville (ex: Paris 10e -> Paris)
+    Filtre les arrondissements pour ne garder que les villes principales
     """
     all_rows = []
     
@@ -93,15 +101,33 @@ def load_cities_data() -> pd.DataFrame:
 
                 for record in records:
                     fields = record.get('fields', {})
+                    ville_name = fields.get('name')
+                    departement_code = fields.get('admin2_code')
+                    
+                    # Filtrer les arrondissements (ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement")
+                    if ville_name and _is_arrondissement(ville_name):
+                        continue
+                    
+                    # Exception pour le département 75 : ne garder que Paris
+                    if departement_code == '75' and ville_name != 'Paris':
+                        continue
+                    
+                    # Ajouter le département entre parenthèses pour différencier les villes homonymes
+                    if ville_name and departement_code:
+                        ville_display = f"{ville_name} ({departement_code})"
+                    else:
+                        ville_display = ville_name
+                    
                     coordinates = fields.get('coordinates', [None, None])
                     lat = coordinates[0] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
                     lon = coordinates[1] if isinstance(coordinates, list) and len(coordinates) >= 2 else None
 
                     all_rows.append({
-                        'ville': fields.get('name'),
+                        'ville': ville_display,
+                        'ville_nom': ville_name,  # Nom original pour recherches
                         'population': fields.get('population'),
                         'region_code': fields.get('admin1_code'),
-                        'departement_code': fields.get('admin2_code'),
+                        'departement_code': departement_code,
                         'pays': fields.get('country_code'),
                         'timezone': fields.get('timezone'),
                         'altitude': fields.get('dem'),
@@ -113,31 +139,7 @@ def load_cities_data() -> pd.DataFrame:
                 st.warning(f"Impossible de charger les données pour {country_code}: {e}")
                 continue
 
-        df = pd.DataFrame(all_rows)
-        
-        if df.empty:
-            return df
-        
-        # Normaliser les noms de villes et regrouper les arrondissements
-        df['ville_normalisee'] = df['ville'].apply(_normalize_city_name)
-        
-        # Grouper par ville normalisée et agréger les données
-        df_grouped = df.groupby('ville_normalisee').agg({
-            'population': 'sum',  # Somme des populations
-            'region_code': 'first',
-            'departement_code': 'first',
-            'pays': 'first',
-            'timezone': 'first',
-            'altitude': 'mean',  # Altitude moyenne
-            'lat': 'mean',  # Coordonnées moyennes
-            'lon': 'mean'
-        }).reset_index()
-        
-        # Renommer la colonne normalisée en 'ville'
-        df_grouped.rename(columns={'ville_normalisee': 'ville'}, inplace=True)
-        
-        return df_grouped
-        
+        return pd.DataFrame(all_rows)
     except Exception as e:
         st.error(f"Erreur lors du chargement des villes: {e}")
         return pd.DataFrame()
@@ -285,12 +287,15 @@ def get_city_wikipedia_summary(city_name: str) -> str:
     Récupère le résumé Wikipedia d'une ville
     """
     try:
-        url = f"https://fr.wikipedia.org/api/rest_v1/page/summary/{city_name}"
+        # Extraire le nom de la ville sans le département (retirer le format " (XX)")
+        ville_clean = re.sub(r'\s*\(\d+[A-Z]?\)$', '', city_name)
+        
+        url = f"https://fr.wikipedia.org/api/rest_v1/page/summary/{ville_clean}"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             return data.get('extract', 'Aucune description disponible')
-    except:
+    except Exception:
         pass
     
     return "Aucune description disponible"
