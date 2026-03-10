@@ -15,8 +15,8 @@ FRANCE_TERRITORIES = ['FR', 'GP', 'MQ', 'GF', 'RE', 'YT', 'NC', 'PF', 'PM', 'WF'
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 # Chemin vers les fichiers de données
-LOGEMENT_FILE = Path(__file__).parent.parent / "data" / "base-ic-logement-2022.xlsx"
-EMPLOI_FILE = Path(__file__).parent.parent / "data" / "base-cc-emploi-pop-active-2022.xlsx"
+LOGEMENT_FILE = Path(__file__).parent.parent / "data" / "logement.csv"
+EMPLOI_FILE = Path(__file__).parent.parent / "data" / "emploi.csv"
 
 
 def _weather_code_to_label(code: Optional[int]) -> str:
@@ -59,6 +59,61 @@ def _fallback_weather_current() -> Dict:
             'precipMM': 'N/A'
         }]
     }
+
+
+def _read_insee_csv(file_path: Path, required_columns: List[str]) -> pd.DataFrame:
+    """
+    Lit un CSV INSEE en gérant les variations de séparateur,
+    d'encodage et de lignes d'en-tête.
+    """
+    read_attempts = [
+        {"sep": ";", "encoding": "utf-8-sig"},
+        {"sep": ";", "encoding": "latin-1"},
+        {"sep": ",", "encoding": "utf-8-sig"},
+        {"sep": ",", "encoding": "latin-1"},
+        {"sep": None, "encoding": "utf-8-sig", "engine": "python"},
+    ]
+
+    for skiprows in (0, 4):
+        for options in read_attempts:
+            try:
+                df = pd.read_csv(file_path, skiprows=skiprows, **options)
+                if df.empty:
+                    continue
+
+                # Nettoyer les noms de colonnes (espaces parasites)
+                rename_map = {
+                    original: str(original).strip()
+                    for original in df.columns
+                    if str(original) != str(original).strip()
+                }
+                if rename_map:
+                    df = df.rename(columns=rename_map)
+
+                if all(col in df.columns for col in required_columns):
+                    return df
+            except Exception:
+                continue
+
+    return pd.DataFrame()
+
+
+def _to_numeric_safe(series: pd.Series) -> pd.Series:
+    """
+    Convertit une série en numérique en gérant les espaces insécables,
+    séparateurs de milliers et virgules décimales.
+    """
+    if pd.api.types.is_numeric_dtype(series):
+        return series
+
+    cleaned = (
+        series.astype(str)
+        .str.replace('\u202f', '', regex=False)
+        .str.replace(' ', '', regex=False)
+        .str.replace(',', '.', regex=False)
+        .replace({'': None, 'nan': None, 'None': None})
+    )
+    return pd.to_numeric(cleaned, errors='coerce')
 
 
 def _is_arrondissement(ville_name: str) -> bool:
@@ -191,19 +246,22 @@ def load_cities_data() -> pd.DataFrame:
 @st.cache_data(ttl=3600)
 def load_communes_emploi_data() -> pd.DataFrame:
     """
-    Charge les données d'emploi communales depuis le fichier Excel INSEE
+    Charge les données d'emploi communales depuis le fichier CSV INSEE
     Agrège les données IRIS par commune
     """
     try:
         if not EMPLOI_FILE.exists():
             st.warning(f"Fichier de données d'emploi introuvable: {EMPLOI_FILE}")
             return pd.DataFrame()
-        
-        # Lire le fichier Excel en sautant les lignes d'en-tête
-        df = pd.read_excel(EMPLOI_FILE, skiprows=4)
+
+        # Lire le fichier CSV (sans notion de feuilles)
+        df = _read_insee_csv(EMPLOI_FILE, required_columns=['Code géographique'])
+        if df.empty:
+            st.warning(f"Impossible de lire le fichier d'emploi (format CSV invalide): {EMPLOI_FILE}")
+            return pd.DataFrame()
         
         # Filtrer la première ligne qui contient les codes de colonnes
-        df = df[df['Code géographique'] != 'CODGEO']
+        df = df[df['Code géographique'].astype(str) != 'CODGEO']
         
         # Convertir les colonnes numériques
         numeric_cols = [
@@ -219,7 +277,7 @@ def load_communes_emploi_data() -> pd.DataFrame:
         
         for col in numeric_cols:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = _to_numeric_safe(df[col])
         
         # Agréger par commune (code commune)
         agg_dict = {}
@@ -247,19 +305,23 @@ def load_communes_emploi_data() -> pd.DataFrame:
 @st.cache_data(ttl=3600)
 def load_communes_logement_data() -> pd.DataFrame:
     """
-    Charge les données de logement communales depuis le fichier Excel INSEE
+    Charge les données de logement communales depuis le fichier CSV INSEE
     Agrège les données IRIS par commune
     """
     try:
         if not LOGEMENT_FILE.exists():
             st.warning(f"Fichier de données de logement introuvable: {LOGEMENT_FILE}")
             return pd.DataFrame()
-        
-        # Lire le fichier Excel en sautant les lignes d'en-tête
-        df = pd.read_excel(LOGEMENT_FILE, skiprows=4)
+
+        # Lire le fichier CSV (sans notion de feuilles)
+        df = _read_insee_csv(LOGEMENT_FILE, required_columns=['Commune ou ARM'])
+        if df.empty:
+            st.warning(f"Impossible de lire le fichier logement (format CSV invalide): {LOGEMENT_FILE}")
+            return pd.DataFrame()
         
         # Filtrer la première ligne qui contient les codes de colonnes
-        df = df[df['Iris'] != 'IRIS']
+        if 'Iris' in df.columns:
+            df = df[df['Iris'].astype(str) != 'IRIS']
         
         # Convertir les colonnes numériques
         numeric_cols = [
@@ -285,7 +347,7 @@ def load_communes_logement_data() -> pd.DataFrame:
         
         for col in numeric_cols:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = _to_numeric_safe(df[col])
         
         # Agréger par commune (code commune = Commune ou ARM)
         agg_dict = {}
@@ -295,7 +357,8 @@ def load_communes_logement_data() -> pd.DataFrame:
         
         # Ajouter les colonnes de libellés (prendre le premier)
         agg_dict['Libellé commune ou ARM'] = 'first'
-        agg_dict['Département'] = 'first'
+        if 'Département' in df.columns:
+            agg_dict['Département'] = 'first'
         
         df_communes = df.groupby('Commune ou ARM').agg(agg_dict).reset_index()
         df_communes.rename(columns={'Commune ou ARM': 'code_commune'}, inplace=True)
