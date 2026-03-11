@@ -94,74 +94,32 @@ if selected_city:
             
             st.divider()
             
-            # Détail des chiffres
-            st.subheader("📊 Détail des chiffres")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("**Population et activité**")
-                pop_15_64 = emp_data.get('population_15_64', 'N/A')
-                actifs = emp_data.get('actifs', 'N/A')
-                actifs_occupes = emp_data.get('actifs_occupes', 'N/A')
-                chomeurs = emp_data.get('chomeurs', 'N/A')
-                
+            pop_15_64 = emp_data.get('population_15_64', 'N/A')
+            actifs = emp_data.get('actifs', 'N/A')
+            actifs_occupes = emp_data.get('actifs_occupes', 'N/A')
+            chomeurs = emp_data.get('chomeurs', 'N/A')
+            inactifs = emp_data.get('inactifs', 'N/A')
+            autres_inactifs = emp_data.get('autres_inactifs', 'N/A')
+
+            # Grille 2 x 3
+            row1_col1, row1_col2 = st.columns(2)
+            with row1_col1:
                 st.metric("👥 Population 15-64 ans", f"{pop_15_64:,}" if pop_15_64 != 'N/A' else 'N/A')
+            with row1_col2:
                 st.metric("💼 Actifs", f"{actifs:,}" if actifs != 'N/A' else 'N/A')
+
+            row2_col1, row2_col2 = st.columns(2)
+            with row2_col1:
                 st.metric("✅ Actifs occupés", f"{actifs_occupes:,}" if actifs_occupes != 'N/A' else 'N/A')
+            with row2_col2:
                 st.metric("❌ Chômeurs", f"{chomeurs:,}" if chomeurs != 'N/A' else 'N/A')
-            
-            with col2:
-                st.markdown("**Inactifs**")
-                inactifs = emp_data.get('inactifs', 'N/A')
-                etudiants = emp_data.get('etudiants', 'N/A')
-                retraites = emp_data.get('retraites', 'N/A')
-                autres_inactifs = emp_data.get('autres_inactifs', 'N/A')
-                
+
+            row3_col1, row3_col2 = st.columns(2)
+            with row3_col1:
                 st.metric("🚫 Total inactifs", f"{inactifs:,}" if inactifs != 'N/A' else 'N/A')
-                st.metric("🎓 Étudiants", f"{etudiants:,}" if etudiants != 'N/A' else 'N/A')
-                st.metric("👴 Retraités", f"{retraites:,}" if retraites != 'N/A' else 'N/A')
+            with row3_col2:
                 st.metric("📄 Autres inactifs", f"{autres_inactifs:,}" if autres_inactifs != 'N/A' else 'N/A')
             
-            # Graphiques
-            st.divider()
-            st.subheader("📊 Visualisations")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Répartition de la population 15-64 ans
-                if all(emp_data.get(k, 'N/A') != 'N/A' for k in ['actifs_occupes', 'chomeurs', 'inactifs']):
-                    import plotly.graph_objects as go
-                    
-                    fig = go.Figure(data=[go.Pie(
-                        labels=['Actifs occupés', 'Chômeurs', 'Inactifs'],
-                        values=[
-                            emp_data.get('actifs_occupes', 0),
-                            emp_data.get('chomeurs', 0),
-                            emp_data.get('inactifs', 0)
-                        ],
-                        hole=.3
-                    )])
-                    fig.update_layout(title="Répartition de la population 15-64 ans")
-                    st.plotly_chart(fig, use_container_width=True)
-            
-            with col2:
-                # Détail des inactifs
-                if all(emp_data.get(k, 'N/A') != 'N/A' for k in ['etudiants', 'retraites', 'autres_inactifs']):
-                    import plotly.graph_objects as go
-                    
-                    fig = go.Figure(data=[go.Pie(
-                        labels=['Étudiants', 'Retraités', 'Autres'],
-                        values=[
-                            emp_data.get('etudiants', 0),
-                            emp_data.get('retraites', 0),
-                            emp_data.get('autres_inactifs', 0)
-                        ],
-                        hole=.3
-                    )])
-                    fig.update_layout(title="Répartition des inactifs")
-                    st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("⚠️ Données d'emploi non disponibles pour cette commune")
 

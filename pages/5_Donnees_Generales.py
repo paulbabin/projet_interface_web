@@ -144,7 +144,7 @@ if selected_city:
                 st.plotly_chart(fig_dept, use_container_width=True)
                 
                 # Statistiques du département
-                col1, col2, col3 = st.columns(3)
+                col1, col2 = st.columns(2)
                 
                 with col1:
                     st.metric(
@@ -157,13 +157,6 @@ if selected_city:
                     st.metric(
                         f"Rang de {selected_city}",
                         f"#{rank}"
-                    )
-                
-                with col3:
-                    avg_pop = same_dept['population'].mean()
-                    st.metric(
-                        "Population moyenne",
-                        f"{int(avg_pop):,}"
                     )
         
         st.divider()

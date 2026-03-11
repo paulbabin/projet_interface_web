@@ -89,11 +89,6 @@ if selected_city:
                 help="Température ressentie"
             )
         
-        # Description météo
-        if 'weatherDesc' in current and len(current['weatherDesc']) > 0:
-            weather_desc = current['weatherDesc'][0].get('value', 'N/A')
-            st.info(f"☁️ **{weather_desc}**")
-        
         # Informations supplémentaires
         col1, col2, col3 = st.columns(3)
         
@@ -148,10 +143,6 @@ if selected_city:
                     st.metric("🔻 Min", f"{forecast['Température Min']}°C")
                     st.caption(f"☁️ {forecast['Conditions']}")
             
-            st.divider()
-            
-            # Graphique de température
-            st.subheader("📊 Évolution des températures")
             
             if forecast_list:
                 forecast_df = pd.DataFrame(forecast_list)
@@ -159,11 +150,13 @@ if selected_city:
                 # Convertir en numérique
                 forecast_df['Température Max'] = pd.to_numeric(forecast_df['Température Max'], errors='coerce')
                 forecast_df['Température Min'] = pd.to_numeric(forecast_df['Température Min'], errors='coerce')
+                forecast_df['Date affichée'] = pd.to_datetime(forecast_df['Date'], errors='coerce').dt.strftime('%d/%m/%Y')
+                forecast_df['Date affichée'] = forecast_df['Date affichée'].fillna(forecast_df['Date'])
                 
                 fig_temp = go.Figure()
                 
                 fig_temp.add_trace(go.Scatter(
-                    x=forecast_df['Date'],
+                    x=forecast_df['Date affichée'],
                     y=forecast_df['Température Max'],
                     mode='lines+markers',
                     name='Température Max',
@@ -172,7 +165,7 @@ if selected_city:
                 ))
                 
                 fig_temp.add_trace(go.Scatter(
-                    x=forecast_df['Date'],
+                    x=forecast_df['Date affichée'],
                     y=forecast_df['Température Min'],
                     mode='lines+markers',
                     name='Température Min',
