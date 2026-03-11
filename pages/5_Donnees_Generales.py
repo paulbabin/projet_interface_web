@@ -76,7 +76,8 @@ if selected_city:
             map_df = pd.DataFrame({
                 'ville': [selected_city],
                 'lat': [city_info['lat']],
-                'lon': [city_info['lon']]
+                'lon': [city_info['lon']],
+                'taille': [20] # Pour avoir un beau marqueur
             })
             
             fig_map = px.scatter_mapbox(
@@ -84,12 +85,19 @@ if selected_city:
                 lat='lat',
                 lon='lon',
                 hover_name='ville',
-                zoom=10,
+                size='taille',
+                size_max=15,
+                color='ville',
+                zoom=11,
+                center={'lat': city_info['lat'], 'lon': city_info['lon']},
                 height=400
             )
+            
+            # Style carto-positron
             fig_map.update_layout(
-                mapbox_style="open-street-map",
-                margin={"r":0,"t":0,"l":0,"b":0}
+                mapbox_style="carto-positron",
+                margin={"r":0,"t":0,"l":0,"b":0},
+                showlegend=False
             )
             st.plotly_chart(fig_map, use_container_width=True)
         

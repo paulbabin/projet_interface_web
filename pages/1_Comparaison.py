@@ -155,7 +155,7 @@ with tab1:
             zoom=5,
             height=500
         )
-        fig_map.update_layout(mapbox_style="open-street-map", margin={"r":0,"t":0,"l":0,"b":0})
+        fig_map.update_layout(mapbox_style="carto-positron", margin={"r":0,"t":0,"l":0,"b":0})
         st.plotly_chart(fig_map, use_container_width=True)
 
 # ====== TAB 2: DÉMOGRAPHIE ======

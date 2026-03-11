@@ -82,6 +82,7 @@ st.divider()
 st.header("Carte des Villes Françaises")
 
 if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
+    # Define base map properties
     fig = px.scatter_mapbox(
         df_filtered,
         lat='lat',
@@ -94,12 +95,17 @@ if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
         } if 'population' in df_filtered.columns else None,
         size='population' if 'population' in df_filtered.columns else None,
         color='population' if 'population' in df_filtered.columns else None,
-        color_continuous_scale='Blues',
-        size_max=30,
-        zoom=5,
+        # Echelle de couleur du bleu clair au bleu foncé/violet
+        color_continuous_scale=["#bbd1e7","#1e3a8a", "#5e0580"],
+        # Caper l'échelle de couleur à 500 000 pour mieux voir les nuances des villes moyennes
+        range_color=[0, 500000],
+        size_max=35,
+        zoom=4.8,
+        center={'lat': 46.603354, 'lon': 1.888334}, # Centre de la France
         height=600,
     )
 
+    # Style 'carto-positron' public
     fig.update_layout(
         mapbox_style="carto-positron",
         margin={"r":0,"t":0,"l":0,"b":0},
