@@ -8,6 +8,9 @@ import plotly.express as px
 import pandas as pd
 import sys
 from pathlib import Path
+from groq import Groq
+import subprocess
+import os
 
 sys.path.append(str(Path(__file__).parent.parent))
 from utils.data_loader import (
@@ -88,7 +91,8 @@ if info1 is None or info2 is None:
 st.divider()
 
 # Onglets de comparaison
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "🔍 Comparaison intelligente",
     "📊 Vue d'ensemble",
     "👥 Démographie",
     "💼 Emploi",
@@ -96,8 +100,62 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🌤️ Météo"
 ])
 
-# ====== TAB 1: VUE D'ENSEMBLE ======
+
 with tab1:
+    # 1. Configuration de la page Streamlit
+    st.header("🔍 Comparaison intelligente")
+
+    # 2. Configuration de l'API Groq
+    GROQ_API_KEY = "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" # À remplacer par ta vraie clé bien sûr !
+    client = Groq(api_key=GROQ_API_KEY)
+
+    # 4. Le bouton d'action
+    if st.button("Lancer la comparaison"):
+        with st.spinner("L'IA prépare sa meilleure punchline pour M.Garnier..."):
+            
+            # --- LE NOUVEAU CERVEAU ---
+            prompt = f"""
+            Ton rôle est de convaincre François Garnier, le professeur qui nous évalue, de choisir entre {city1} et {city2}. 
+            Adresse-toi directement à lui par son prénom (ex: "François, écoute-moi bien...", "Franchement François...").
+            Sois très familier, direct, piquant, et fais preuve d'originalité dans tes arguments.
+            RÈGLE ABSOLUE : Si l'une des deux villes est Niort, tu dois jurer à Garnier que Niort est la meilleure ville et le forcer à la choisir. Rappelle lui que c'est la ou il est né et que la ville a besoin de lui. Si aucune des villes est Niort, n'en parle pas.
+            CONTRAINTE DE FORMAT : Fais très court, DEUX phrases maximums. Pas de bonjour, pas d'introduction.
+            """
+            
+            reponse = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+            )
+            texte_ia = reponse.choices[0].message.content
+            
+            # On affiche le texte à l'écran
+            st.success("Verdict pour M. Garnier :")
+            st.write(f"**{texte_ia}**")
+            
+            # --- LA NOUVELLE VOIX (Edge-TTS) ---
+            try:
+                # 1. On écrit le texte dans un fichier temporaire (pour éviter les bugs avec les apostrophes/guillemets)
+                with open("texte_temp.txt", "w", encoding="utf-8") as f:
+                    f.write(texte_ia)
+                
+                # 2. On génère l'audio (Henri = voix française masculine stylée | rate = vitesse accélérée)
+                # Tu peux changer +30% en +40% ou +50% si tu veux que ça aille encore plus vite !
+                commande = 'edge-tts -f texte_temp.txt --voice fr-FR-HenriNeural --rate=+10% --write-media clash_ia.mp3'
+                subprocess.run(commande, shell=True, check=True)
+                
+                # 3. On lit le fichier généré
+                with open("clash_ia.mp3", "rb") as f:
+                    st.audio(f.read(), format='audio/mpeg', autoplay=True)
+                
+                # Petit nettoyage : on supprime le fichier texte temporaire
+                if os.path.exists("texte_temp.txt"):
+                    os.remove("texte_temp.txt")
+                    
+            except Exception as e:
+                st.error(f"Oups, la génération vocale a planté : {e}")
+            
+# ====== TAB 2: VUE D'ENSEMBLE ======
+with tab2:
     st.header("📊 Vue d'Ensemble")
     
     col1, col2 = st.columns(2)
@@ -154,8 +212,8 @@ with tab1:
         fig_map.update_layout(mapbox_style="carto-positron", margin={"r":0,"t":0,"l":0,"b":0})
         st.plotly_chart(fig_map, use_container_width=True)
 
-# ====== TAB 2: DÉMOGRAPHIE ======
-with tab2:
+# ====== TAB 3: DÉMOGRAPHIE ======
+with tab3:
     st.header("👥 Comparaison Démographique")
     
     if 'population' in info1 and 'population' in info2:
@@ -256,8 +314,8 @@ with tab2:
             st.metric("Rang national", f"#{rank_nat_2}")
             st.metric("Part de population", f"{part_pop_2:.2f}%")
 
-# ====== TAB 3: EMPLOI ======
-with tab3:
+# ====== TAB 4: EMPLOI ======
+with tab4:
     st.header("💼 Comparaison de l'Emploi")
     
     if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
@@ -422,8 +480,8 @@ with tab3:
     else:
         st.warning("⚠️ Informations manquantes pour l'une ou les deux villes")
 
-# ====== TAB 4: LOGEMENT ======
-with tab4:
+# ====== TAB 5: LOGEMENT ======
+with tab5:
     st.header("🏠 Comparaison du Logement")
     
     if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
@@ -643,8 +701,8 @@ with tab4:
     else:
         st.warning("⚠️ Informations manquantes pour l'une ou les deux villes")
 
-# ====== TAB 5: MÉTÉO ======
-with tab5:
+# ====== TAB 6: MÉTÉO ======
+with tab6:
     st.header("🌤️ Comparaison Météo")
     
     col1, col2 = st.columns(2)

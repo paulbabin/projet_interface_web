@@ -114,7 +114,6 @@ if selected_city:
             ]
             
             if not same_dept.empty and 'population' in same_dept.columns:
-                st.write(f"📊 Villes du département {city_info['departement_code']}")
                 
                 # Top 5 des villes du département
                 top_dept = same_dept.nlargest(5, 'population')[['ville', 'population']]
@@ -162,7 +161,7 @@ if selected_city:
         st.divider()
         
         # Statistiques nationales
-        st.subheader("🇫🇷 Contexte National")
+        st.subheader("🏘️ Contexte National")
         
         if 'population' in city_info and 'population' in df_cities.columns:
             total_cities = len(df_cities)

@@ -184,34 +184,8 @@ if selected_city:
                 else:
                     st.warning("⚠️ Données de répartition non disponibles")
             
-            # Graphique statut d'occupation
-            taux_prop_val = housing_data.get('taux_proprietaires', 0)
-            taux_loc_val = housing_data.get('taux_locataires', 0)
-            
-            if taux_prop_val != 'N/A' and taux_loc_val != 'N/A':
-                statut_df = pd.DataFrame({
-                    'Statut': ['Propriétaires', 'Locataires', 'Autres'],
-                    'Pourcentage': [
-                        taux_prop_val,
-                        taux_loc_val,
-                        100 - taux_prop_val - taux_loc_val
-                    ]
-                })
-                
-                fig_statut = px.pie(
-                    statut_df,
-                    values='Pourcentage',
-                    names='Statut',
-                    title="Répartition par statut d'occupation",
-                    color_discrete_sequence=['#27ae60', '#e67e22', '#95a5a6']
-                )
-                st.plotly_chart(fig_statut, use_container_width=True)
-                
-            else:
-                st.warning("⚠️ Données de logement non disponibles pour cette commune")
-
 st.markdown("""
 <div class="site-footer">
-    <p>Sources : OpenDataSoft · Caisse des Dépôts · Open Data France</p>
+    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
 </div>
 """, unsafe_allow_html=True)
