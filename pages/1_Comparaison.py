@@ -28,6 +28,7 @@ from utils.number_format import format_int_fr
 st.set_page_config(page_title="Comparaison de Villes", page_icon="🔄", layout="wide", initial_sidebar_state="collapsed")
 
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.style import COLOR_LOW, COLOR_MEDIUM, COLOR_HIGH, COLOR_SEQUENCE, SOFT, PALETTE
 inject_navbar_css()
 render_navbar("Comparaison")
 
@@ -241,7 +242,7 @@ with tab3:
             y=[pop1],
             text=[format_int_fr(pop1)],
             textposition='auto',
-            marker_color='#1f77b4'
+            marker_color=COLOR_LOW if pop1 <= pop2 else COLOR_HIGH
         ))
         
         fig_demo.add_trace(go.Bar(
@@ -250,7 +251,7 @@ with tab3:
             y=[pop2],
             text=[format_int_fr(pop2)],
             textposition='auto',
-            marker_color='#ff7f0e'
+            marker_color=COLOR_LOW if pop2 <= pop1 else COLOR_HIGH
         ))
         
         fig_demo.update_layout(
@@ -373,7 +374,7 @@ with tab4:
                     barmode='group',
                     text='Valeur',
                     title="Comparaison des taux clés de l'emploi",
-                    color_discrete_sequence=['#1f77b4', '#ff7f0e']
+                    color_discrete_sequence=[COLOR_MEDIUM, COLOR_HIGH]
                 )
                 fig_rates.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
                 fig_rates.update_layout(yaxis_title="Pourcentage (%)")
@@ -412,7 +413,7 @@ with tab4:
                     color='Catégorie',
                     barmode='stack',
                     title="Structure de la population 15-64 ans (%)",
-                    color_discrete_sequence=['#2ecc71', '#e74c3c', '#f39c12']
+                    color_discrete_sequence=COLOR_SEQUENCE
                 )
                 fig_structure.update_layout(yaxis_title="Pourcentage (%)")
                 st.plotly_chart(fig_structure, use_container_width=True)
@@ -439,7 +440,7 @@ with tab4:
                     barmode='group',
                     text='Effectif_fr',
                     title="Comparaison des effectifs (15-64 ans)",
-                    color_discrete_sequence=['#1f77b4', '#ff7f0e']
+                    color_discrete_sequence=[COLOR_MEDIUM, COLOR_HIGH]
                 )
                 fig_volumes.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_volumes.update_layout(yaxis_title="Nombre de personnes")
@@ -460,7 +461,7 @@ with tab4:
                         names=form1['pcs_labels'],
                         values=form1['pcs_values'],
                         title=f"CSP — {city1}",
-                        color_discrete_sequence=px.colors.qualitative.Set2,
+                        color_discrete_sequence=PALETTE,
                         hole=0.35,
                         height=380
                     )
@@ -472,7 +473,7 @@ with tab4:
                         names=form2['pcs_labels'],
                         values=form2['pcs_values'],
                         title=f"CSP — {city2}",
-                        color_discrete_sequence=px.colors.qualitative.Set2,
+                        color_discrete_sequence=PALETTE,
                         hole=0.35,
                         height=380
                     )
@@ -561,7 +562,7 @@ with tab6:
                     y=[log1.get('taux_logements_vacants', 0), log2.get('taux_logements_vacants', 0)],
                     text=[f"{log1.get('taux_logements_vacants', 0)}%", f"{log2.get('taux_logements_vacants', 0)}%"],
                     textposition='auto',
-                    marker_color=['#e74c3c', '#3498db']
+                    marker_color=[COLOR_MEDIUM, COLOR_HIGH]
                 ))
                 fig_vacance.update_layout(
                     title="Taux de logements vacants (%)",
@@ -591,7 +592,7 @@ with tab6:
                     color='Type',
                     title="Répartition Maisons/Appartements (%)",
                     barmode='group',
-                    color_discrete_sequence=['#f39c12', '#9b59b6'],
+                    color_discrete_sequence=[COLOR_LOW, COLOR_HIGH],
                     height=350
                 )
                 st.plotly_chart(fig_type, use_container_width=True)
@@ -627,7 +628,7 @@ with tab6:
                     color='Statut',
                     barmode='stack',
                     title="Statut d'occupation des résidences principales (%)",
-                    color_discrete_sequence=['#16a34a', '#f59e0b', '#94a3b8'],
+                    color_discrete_sequence=COLOR_SEQUENCE,
                     height=360
                 )
                 fig_occ.update_layout(yaxis_title="Pourcentage (%)")
@@ -655,7 +656,7 @@ with tab6:
                     theta=radar_categories,
                     fill='toself',
                     name=city1,
-                    line=dict(color='#1f77b4')
+                    line=dict(color=COLOR_LOW)
                 ))
                 fig_radar_log.add_trace(go.Scatterpolar(
                     r=[
@@ -668,7 +669,7 @@ with tab6:
                     theta=radar_categories,
                     fill='toself',
                     name=city2,
-                    line=dict(color='#ff7f0e')
+                    line=dict(color=COLOR_HIGH)
                 ))
                 fig_radar_log.update_layout(
                     title="Profil logement (radar des taux)",
@@ -696,7 +697,7 @@ with tab6:
                     text='Logements par ménage',
                     title="Intensité du parc : logements par ménage",
                     color='Ville',
-                    color_discrete_sequence=['#1f77b4', '#ff7f0e'],
+                    color_discrete_sequence=[COLOR_MEDIUM, COLOR_HIGH],
                     height=340
                 )
                 fig_intensity.update_traces(texttemplate='%{text:.2f}', textposition='outside')
@@ -757,7 +758,7 @@ with tab5:
                 barmode='group',
                 text='Pourcentage',
                 title="Distribution des diplômes parmi les actifs (%)",
-                color_discrete_sequence=['#1f77b4', '#ff7f0e'],
+                color_discrete_sequence=[COLOR_MEDIUM, COLOR_HIGH],
                 height=420
             )
             fig_dipl.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
@@ -781,7 +782,7 @@ with tab5:
                 barmode='group',
                 text='Taux de chômage (%)',
                 title="Risque de chômage par niveau de diplôme (%)",
-                color_discrete_sequence=['#e74c3c', '#3498db'],
+                color_discrete_sequence=[COLOR_MEDIUM, COLOR_HIGH],
                 height=420
             )
             fig_taux.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
@@ -800,13 +801,13 @@ with tab5:
                 r=r1 + [r1[0]],
                 theta=radar_labels + [radar_labels[0]],
                 fill='toself', name=city1,
-                line=dict(color='#1f77b4')
+                line=dict(color=COLOR_LOW)
             ))
             fig_radar.add_trace(go.Scatterpolar(
                 r=r2 + [r2[0]],
                 theta=radar_labels + [radar_labels[0]],
                 fill='toself', name=city2,
-                line=dict(color='#ff7f0e')
+                line=dict(color=COLOR_HIGH)
             ))
             fig_radar.update_layout(
                 polar=dict(radialaxis=dict(visible=True)),
@@ -889,8 +890,8 @@ with tab7:
                 line=dict(color=color_min, width=3, dash='dot')
             ))
 
-        _add_forecast_traces(forecast1, city1, '#e74c3c', '#ff9f7f')
-        _add_forecast_traces(forecast2, city2, '#3498db', '#8ec9ff')
+        _add_forecast_traces(forecast1, city1, COLOR_MEDIUM, COLOR_MEDIUM)
+        _add_forecast_traces(forecast2, city2, COLOR_LOW, COLOR_LOW)
 
         fig_forecast.update_layout(
             title="Comparaison des températures prévues",

@@ -17,5 +17,11 @@ PIE_SEQ = [PALE, LIGHT, ACCENT]
 
 PALETTE = [PRIMARY, SECONDARY, LIGHT, SOFT, ACCENT, PALE]
 
+# Aliases utilisés par les pages de l'application
+COLOR_LOW = LIGHT        # bleu clair
+COLOR_MEDIUM = PRIMARY   # bleu marine
+COLOR_HIGH = ACCENT      # bleu roi
+COLOR_SEQUENCE = [PRIMARY, SECONDARY, LIGHT]  # séquence principale pour les graphiques
+
 def get_primary():
     return PRIMARY

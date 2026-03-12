@@ -21,6 +21,8 @@ from utils.number_format import format_int_fr
 st.set_page_config(page_title="Emploi", page_icon="💼", layout="wide", initial_sidebar_state="collapsed")
 
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.style import COLOR_LOW, COLOR_MEDIUM, COLOR_HIGH, COLOR_SEQUENCE
+
 inject_navbar_css()
 render_navbar("Emploi")
 

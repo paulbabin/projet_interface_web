@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 from utils.data_loader import load_cities_data
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.style import COLOR_SEQUENCE, COLOR_MEDIUM
 from utils.number_format import format_int_fr
 
 # Configuration de la page
@@ -112,7 +113,7 @@ if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
         size='population' if 'population' in df_filtered.columns else None,
         color='population' if 'population' in df_filtered.columns else None,
         # Echelle de couleur du bleu clair au bleu foncé/violet
-        color_continuous_scale=["#bbd1e7","#1e3a8a", "#5e0580"],
+        color_continuous_scale=COLOR_SEQUENCE,
         # Caper l'échelle de couleur à 500 000 pour mieux voir les nuances des villes moyennes
         range_color=[0, 500000],
         size_max=35,
@@ -147,7 +148,7 @@ if 'population' in df_filtered.columns:
             orientation='h',
             title="Top 10 des villes les plus peuplées",
             labels={'population': 'Population', 'ville': 'Ville'},
-            color_discrete_sequence=['#3b82f6']
+            color_discrete_sequence=[COLOR_MEDIUM]
         )
         fig_bar.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',

@@ -21,6 +21,8 @@ from utils.number_format import format_int_fr
 st.set_page_config(page_title="Logement", page_icon="🏠", layout="wide", initial_sidebar_state="collapsed")
 
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.style import COLOR_LOW, COLOR_HIGH, COLOR_SEQUENCE
+
 inject_navbar_css()
 render_navbar("Logement")
 
@@ -151,7 +153,7 @@ if selected_city:
                         values='Pourcentage',
                         names='Type',
                         title=f"Répartition des logements",
-                        color_discrete_sequence=['#2ecc71', '#3498db', '#e74c3c']
+                        color_discrete_sequence=COLOR_SEQUENCE
                     )
                     st.plotly_chart(fig_residence, use_container_width=True)
                 else:
@@ -177,7 +179,7 @@ if selected_city:
                         title=f"Répartition par type",
                         text='Pourcentage',
                         color='Type',
-                        color_discrete_sequence=['#f39c12', '#9b59b6']
+                        color_discrete_sequence=[COLOR_LOW, COLOR_HIGH]
                     )
                     fig_type.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
                     fig_type.update_layout(yaxis_title="Pourcentage (%)")

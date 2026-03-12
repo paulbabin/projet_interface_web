@@ -19,6 +19,8 @@ from utils.number_format import format_int_fr
 st.set_page_config(page_title="Focus sur une ville", page_icon="🎯", layout="wide", initial_sidebar_state="collapsed")
 
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.style import COLOR_SEQUENCE
+
 inject_navbar_css()
 render_navbar("Focus sur une ville")
 
@@ -126,7 +128,7 @@ if selected_city:
                 })
                 
                 combined = pd.concat([current_city_data, top_dept]).drop_duplicates()
-                combined = combined.sort_values('population', ascending=False)
+                combined = combined.sort_values('population', ascending=True)
                 combined['population_fr'] = combined['population'].apply(format_int_fr)
                 
                 # Graphique
@@ -138,7 +140,7 @@ if selected_city:
                     title=f"Populations dans le département {city_info['departement_code']}",
                     labels={'population': 'Population', 'ville': 'Ville'},
                     color='population',
-                    color_continuous_scale='Viridis',
+                    color_continuous_scale=COLOR_SEQUENCE,
                     text='population_fr'
                 )
                 fig_dept.update_traces(texttemplate='%{text}', textposition='outside')

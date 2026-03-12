@@ -20,6 +20,8 @@ from utils.data_loader import (
 st.set_page_config(page_title="Météo", page_icon="🌤️", layout="wide", initial_sidebar_state="collapsed")
 
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.style import COLOR_LOW, COLOR_HIGH
+
 inject_navbar_css()
 render_navbar("Météo")
 
@@ -160,7 +162,7 @@ if selected_city:
                     y=forecast_df['Température Max'],
                     mode='lines+markers',
                     name='Température Max',
-                    line=dict(color='#e74c3c', width=3),
+                    line=dict(color=COLOR_HIGH, width=3),
                     marker=dict(size=10)
                 ))
                 
@@ -169,7 +171,7 @@ if selected_city:
                     y=forecast_df['Température Min'],
                     mode='lines+markers',
                     name='Température Min',
-                    line=dict(color='#3498db', width=3),
+                    line=dict(color=COLOR_LOW, width=3),
                     marker=dict(size=10)
                 ))
                 
