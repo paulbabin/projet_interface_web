@@ -119,7 +119,7 @@ Avant l’exécution, **ajouter manuellement les clés API nécessaires** (notam
 ### Option B — Version déployée (recommandée)
 
 Le projet est aussi accessible via :  
-**metapolis.streamlit.app**
+**https://metapolis.streamlit.app**
 
 ---
 
