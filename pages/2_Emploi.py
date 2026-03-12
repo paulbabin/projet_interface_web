@@ -16,6 +16,7 @@ from utils.data_loader import (
     get_city_info,
     get_employment_data
 )
+from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Emploi", page_icon="💼", layout="wide", initial_sidebar_state="collapsed")
 
@@ -104,21 +105,21 @@ if selected_city:
             # Grille 2 x 3
             row1_col1, row1_col2 = st.columns(2)
             with row1_col1:
-                st.metric("👥 Population 15-64 ans", f"{pop_15_64:,}" if pop_15_64 != 'N/A' else 'N/A')
+                st.metric("👥 Population 15-64 ans", format_int_fr(pop_15_64) if pop_15_64 != 'N/A' else 'N/A')
             with row1_col2:
-                st.metric("💼 Actifs", f"{actifs:,}" if actifs != 'N/A' else 'N/A')
+                st.metric("💼 Actifs", format_int_fr(actifs) if actifs != 'N/A' else 'N/A')
 
             row2_col1, row2_col2 = st.columns(2)
             with row2_col1:
-                st.metric("✅ Actifs occupés", f"{actifs_occupes:,}" if actifs_occupes != 'N/A' else 'N/A')
+                st.metric("✅ Actifs occupés", format_int_fr(actifs_occupes) if actifs_occupes != 'N/A' else 'N/A')
             with row2_col2:
-                st.metric("❌ Chômeurs", f"{chomeurs:,}" if chomeurs != 'N/A' else 'N/A')
+                st.metric("❌ Chômeurs", format_int_fr(chomeurs) if chomeurs != 'N/A' else 'N/A')
 
             row3_col1, row3_col2 = st.columns(2)
             with row3_col1:
-                st.metric("🚫 Total inactifs", f"{inactifs:,}" if inactifs != 'N/A' else 'N/A')
+                st.metric("🚫 Total inactifs", format_int_fr(inactifs) if inactifs != 'N/A' else 'N/A')
             with row3_col2:
-                st.metric("📄 Autres inactifs", f"{autres_inactifs:,}" if autres_inactifs != 'N/A' else 'N/A')
+                st.metric("📄 Autres inactifs", format_int_fr(autres_inactifs) if autres_inactifs != 'N/A' else 'N/A')
             
         else:
             st.warning("⚠️ Données d'emploi non disponibles pour cette commune")

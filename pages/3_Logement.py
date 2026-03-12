@@ -16,6 +16,7 @@ from utils.data_loader import (
     get_city_info,
     get_housing_data
 )
+from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Logement", page_icon="🏠", layout="wide", initial_sidebar_state="collapsed")
 
@@ -71,7 +72,7 @@ if selected_city:
                 nb_logements = housing_data.get('nombre_logements', 'N/A')
                 st.metric(
                     "🏘️ Nombre de logements",
-                    f"{nb_logements:,}" if nb_logements != 'N/A' else 'N/A',
+                    format_int_fr(nb_logements) if nb_logements != 'N/A' else 'N/A',
                     help="Nombre total de logements dans la commune"
                 )
             
@@ -113,7 +114,7 @@ if selected_city:
                 nb_menages = housing_data.get('nombre_menages', 'N/A')
                 st.metric(
                     "👨‍👩‍👧‍👦 Ménages",
-                    f"{nb_menages:,}" if nb_menages != 'N/A' else 'N/A',
+                    format_int_fr(nb_menages) if nb_menages != 'N/A' else 'N/A',
                     help="Nombre total de ménages"
                 )
             

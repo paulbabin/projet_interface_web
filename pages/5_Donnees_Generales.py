@@ -14,6 +14,7 @@ from utils.data_loader import (
     get_city_list,
     get_city_info
 )
+from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Focus sur une ville", page_icon="🎯", layout="wide", initial_sidebar_state="collapsed")
 
@@ -44,7 +45,7 @@ if selected_city:
         col1, col2, col3 = st.columns(3)
 
         with col2:
-            population_value = f"{int(city_info['population']):,}" if 'population' in city_info and pd.notna(city_info['population']) else "N/A"
+            population_value = format_int_fr(city_info['population']) if 'population' in city_info and pd.notna(city_info['population']) else "N/A"
             st.metric(
                 "👥 Population",
                 population_value,
@@ -126,6 +127,7 @@ if selected_city:
                 
                 combined = pd.concat([current_city_data, top_dept]).drop_duplicates()
                 combined = combined.sort_values('population', ascending=False)
+                combined['population_fr'] = combined['population'].apply(format_int_fr)
                 
                 # Graphique
                 fig_dept = px.bar(
@@ -136,9 +138,10 @@ if selected_city:
                     title=f"Populations dans le département {city_info['departement_code']}",
                     labels={'population': 'Population', 'ville': 'Ville'},
                     color='population',
-                    color_continuous_scale='Viridis'
+                    color_continuous_scale='Viridis',
+                    text='population_fr'
                 )
-                fig_dept.update_traces(texttemplate='%{x:,}', textposition='outside')
+                fig_dept.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_dept.update_layout(height=400, showlegend=False)
                 st.plotly_chart(fig_dept, use_container_width=True)
                 

@@ -272,7 +272,30 @@ def load_communes_emploi_data() -> pd.DataFrame:
             'Inactifs 15-64 ans en 2022 (princ)',
             'Élèves, étudiants et stagiaires non rémunérés 15-64 ans en 2022 (princ)',
             'Retraités ou préretraités 15-64 ans en 2022 (princ)',
-            'Autres inactifs 15-64 ans en 2022 (princ)'
+            'Autres inactifs 15-64 ans en 2022 (princ)',
+            # Diplômes des actifs
+            'Actifs Sans diplôme ou CEP en 2022 (princ)',
+            'Actifs BEPC, brevet des collèges, DNB en 2022 (princ)',
+            'Actifs CAP-BEP ou équiv. en 2022 (princ)',
+            'Actifs Bac, brevet pro. ou équiv.  en 2022 (princ)',
+            'Actifs Enseignement sup de niveau bac + 2  en 2022 (princ)',
+            'Actifs Enseignement sup de niveau bac + 3 ou 4  en 2022 (princ)',
+            'Actifs Enseignement sup de niveau bac + 5 ou plus  en 2022 (princ)',
+            # Diplômes des chômeurs
+            'Chômeurs Sans diplôme ou CEP en 2022 (princ)',
+            'Chômeurs BEPC, brevet des collèges, DNB en 2022 (princ)',
+            'Chômeurs CAP-BEP ou équiv. en 2022 (princ)',
+            'Chômeurs Bac, brevet pro. ou équiv.  en 2022 (princ)',
+            'Chômeurs Enseignement sup de niveau bac + 2  en 2022 (princ)',
+            'Chômeurs Enseignement sup de niveau bac + 3 ou 4  en 2022 (princ)',
+            'Chômeurs Enseignement sup de niveau bac + 5 ou plus  en 2022 (princ)',
+            # PCS (Professions et Catégories Socioprofessionnelles)
+            'Actifs 15-64 ans Agriculteurs exploitants en 2022 (compl)',
+            'Actifs 15-64 ans Artisans, Comm., Chefs entr. en 2022 (compl)',
+            'Actifs 15-64 ans Cadres, Prof. intel. sup. en 2022 (compl)',
+            'Actifs 15-64 ans Prof. intermédiaires en 2022 (compl)',
+            'Actifs 15-64 ans Employés en 2022 (compl)',
+            'Actifs 15-64 ans Ouvriers en 2022 (compl)',
         ]
         
         for col in numeric_cols:
@@ -728,6 +751,174 @@ def get_housing_data(city: str, ville_nom: str, departement_code: str) -> Option
         return None
 
 
+
+
+def get_formation_data(city: str, ville_nom: str, departement_code: str) -> Optional[Dict]:
+    """
+    Récupère les données de formations/diplômes depuis le fichier CSV INSEE.
+    Utilise les colonnes diplômes et PCS de la base Activité-Emploi-Chômage RP2022.
+    Couvre la population active 15-64 ans par niveau de diplôme et catégorie socio-pro.
+    """
+    try:
+        df_emploi = load_communes_emploi_data()
+        if df_emploi.empty:
+            return None
+
+        df_cities = load_cities_data()
+        if df_cities.empty:
+            return None
+
+        city_info = df_cities[df_cities['ville'] == city]
+        if city_info.empty:
+            return None
+
+        # Recherche des données de la commune (même logique que get_employment_data)
+        if ville_nom in ['Paris', 'Marseille', 'Lyon']:
+            commune_data = df_emploi[
+                (df_emploi['Département'] == departement_code) &
+                (df_emploi['Libellé géographique'].str.contains(
+                    f'^{ville_nom}', case=False, regex=True, na=False
+                ))
+            ]
+        else:
+            commune_data = df_emploi[
+                df_emploi['Libellé géographique'].str.lower() == ville_nom.lower()
+            ]
+            if commune_data.empty:
+                communes_dept = df_emploi[df_emploi['Département'] == departement_code]
+                if not communes_dept.empty:
+                    for idx, row in communes_dept.iterrows():
+                        if ville_nom.lower() in str(row['Libellé géographique']).lower():
+                            commune_data = communes_dept[communes_dept.index == idx]
+                            break
+
+        if commune_data.empty:
+            return None
+
+        # Agréger si plusieurs lignes (arrondissements)
+        if len(commune_data) > 1:
+            dipl_pcs_cols = [
+                'Actifs Sans diplôme ou CEP en 2022 (princ)',
+                'Actifs BEPC, brevet des collèges, DNB en 2022 (princ)',
+                'Actifs CAP-BEP ou équiv. en 2022 (princ)',
+                'Actifs Bac, brevet pro. ou équiv.  en 2022 (princ)',
+                'Actifs Enseignement sup de niveau bac + 2  en 2022 (princ)',
+                'Actifs Enseignement sup de niveau bac + 3 ou 4  en 2022 (princ)',
+                'Actifs Enseignement sup de niveau bac + 5 ou plus  en 2022 (princ)',
+                'Chômeurs Sans diplôme ou CEP en 2022 (princ)',
+                'Chômeurs BEPC, brevet des collèges, DNB en 2022 (princ)',
+                'Chômeurs CAP-BEP ou équiv. en 2022 (princ)',
+                'Chômeurs Bac, brevet pro. ou équiv.  en 2022 (princ)',
+                'Chômeurs Enseignement sup de niveau bac + 2  en 2022 (princ)',
+                'Chômeurs Enseignement sup de niveau bac + 3 ou 4  en 2022 (princ)',
+                'Chômeurs Enseignement sup de niveau bac + 5 ou plus  en 2022 (princ)',
+                'Actifs 15-64 ans Agriculteurs exploitants en 2022 (compl)',
+                'Actifs 15-64 ans Artisans, Comm., Chefs entr. en 2022 (compl)',
+                'Actifs 15-64 ans Cadres, Prof. intel. sup. en 2022 (compl)',
+                'Actifs 15-64 ans Prof. intermédiaires en 2022 (compl)',
+                'Actifs 15-64 ans Employés en 2022 (compl)',
+                'Actifs 15-64 ans Ouvriers en 2022 (compl)',
+                'Actifs 15-64 ans en 2022 (princ)',
+                'Chômeurs 15-64 ans en 2022 (princ)',
+            ]
+            aggregated = {}
+            for col in dipl_pcs_cols:
+                if col in commune_data.columns:
+                    aggregated[col] = commune_data[col].sum()
+            aggregated['Libellé géographique'] = ville_nom
+            aggregated['Département'] = departement_code
+            row = pd.Series(aggregated)
+        else:
+            row = commune_data.iloc[0]
+
+        def _safe_int(val):
+            return int(val) if pd.notna(val) and val != 0 else 0
+
+        # Diplômes des actifs (7 niveaux)
+        dipl_labels = [
+            'Sans diplôme / CEP',
+            'BEPC / Brevet',
+            'CAP-BEP',
+            'Bac / Brevet pro.',
+            'Bac+2',
+            'Bac+3/4',
+            'Bac+5 et plus',
+        ]
+        actifs_dipl_cols = [
+            'Actifs Sans diplôme ou CEP en 2022 (princ)',
+            'Actifs BEPC, brevet des collèges, DNB en 2022 (princ)',
+            'Actifs CAP-BEP ou équiv. en 2022 (princ)',
+            'Actifs Bac, brevet pro. ou équiv.  en 2022 (princ)',
+            'Actifs Enseignement sup de niveau bac + 2  en 2022 (princ)',
+            'Actifs Enseignement sup de niveau bac + 3 ou 4  en 2022 (princ)',
+            'Actifs Enseignement sup de niveau bac + 5 ou plus  en 2022 (princ)',
+        ]
+        chomeurs_dipl_cols = [
+            'Chômeurs Sans diplôme ou CEP en 2022 (princ)',
+            'Chômeurs BEPC, brevet des collèges, DNB en 2022 (princ)',
+            'Chômeurs CAP-BEP ou équiv. en 2022 (princ)',
+            'Chômeurs Bac, brevet pro. ou équiv.  en 2022 (princ)',
+            'Chômeurs Enseignement sup de niveau bac + 2  en 2022 (princ)',
+            'Chômeurs Enseignement sup de niveau bac + 3 ou 4  en 2022 (princ)',
+            'Chômeurs Enseignement sup de niveau bac + 5 ou plus  en 2022 (princ)',
+        ]
+
+        actifs_by_dipl = [_safe_int(row.get(c, 0)) for c in actifs_dipl_cols]
+        chomeurs_by_dipl = [_safe_int(row.get(c, 0)) for c in chomeurs_dipl_cols]
+
+        # Taux de chômage par niveau de diplôme
+        taux_chomage_by_dipl = []
+        for a, ch in zip(actifs_by_dipl, chomeurs_by_dipl):
+            taux_chomage_by_dipl.append(round(ch / a * 100, 1) if a > 0 else 0)
+
+        # PCS
+        pcs_labels = [
+            'Agriculteurs',
+            'Artisans / Comm.',
+            'Cadres',
+            'Prof. intermédiaires',
+            'Employés',
+            'Ouvriers',
+        ]
+        pcs_cols = [
+            'Actifs 15-64 ans Agriculteurs exploitants en 2022 (compl)',
+            'Actifs 15-64 ans Artisans, Comm., Chefs entr. en 2022 (compl)',
+            'Actifs 15-64 ans Cadres, Prof. intel. sup. en 2022 (compl)',
+            'Actifs 15-64 ans Prof. intermédiaires en 2022 (compl)',
+            'Actifs 15-64 ans Employés en 2022 (compl)',
+            'Actifs 15-64 ans Ouvriers en 2022 (compl)',
+        ]
+        pcs_values = [_safe_int(row.get(c, 0)) for c in pcs_cols]
+        total_pcs = sum(pcs_values)
+        pcs_pct = [round(v / total_pcs * 100, 1) if total_pcs > 0 else 0 for v in pcs_values]
+
+        total_actifs = _safe_int(row.get('Actifs 15-64 ans en 2022 (princ)', 0))
+        total_actifs_dipl = sum(actifs_by_dipl)
+
+        return {
+            'commune': row.get('Libellé géographique', ville_nom),
+            'departement': departement_code,
+            'annee': 2022,
+            'total_actifs': total_actifs,
+            'dipl_labels': dipl_labels,
+            'actifs_by_dipl': actifs_by_dipl,
+            'chomeurs_by_dipl': chomeurs_by_dipl,
+            'taux_chomage_by_dipl': taux_chomage_by_dipl,
+            'pcs_labels': pcs_labels,
+            'pcs_values': pcs_values,
+            'pcs_pct': pcs_pct,
+            # Taux de diplômés du supérieur (bac+2 et plus) parmi les actifs
+            'part_superieur': round(
+                sum(actifs_by_dipl[4:]) / total_actifs_dipl * 100, 1
+            ) if total_actifs_dipl > 0 else 0,
+            # Part des actifs sans diplôme
+            'part_sans_diplome': round(
+                actifs_by_dipl[0] / total_actifs_dipl * 100, 1
+            ) if total_actifs_dipl > 0 else 0,
+        }
+    except Exception as e:
+        st.warning(f"Erreur lors de la récupération des données de formation pour {ville_nom}: {e}")
+        return None
 
 
 def get_city_list(df: pd.DataFrame) -> List[str]:

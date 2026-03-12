@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 from utils.data_loader import load_cities_data
 from utils.navbar import inject_navbar_css, render_navbar
+from utils.number_format import format_int_fr
 
 # Configuration de la page
 st.set_page_config(
@@ -66,32 +67,36 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric(
         "Villes affichées",
-        f"{len(df_filtered):,}",
+        format_int_fr(len(df_filtered)),
         delta=f"{len(df_filtered) - len(df_cities)}" if len(df_filtered) != len(df_cities) else None
     )
 
 if 'population' in df_filtered.columns:
     with col2:
-        st.metric("Population totale", f"{int(df_filtered['population'].sum()):,}")
+        st.metric("Population totale", format_int_fr(df_filtered['population'].sum()))
 
     with col3:
         st.metric(
             "Plus grande ville",
             df_filtered.loc[df_filtered['population'].idxmax(), 'ville'] if 'ville' in df_filtered.columns else "N/A",
-            f"{int(df_filtered['population'].max()):,} hab."
+            f"{format_int_fr(df_filtered['population'].max())} hab."
         )
 
     with col4:
         st.metric(
             "Plus petite ville",
             df_filtered.loc[df_filtered['population'].idxmin(), 'ville'] if 'ville' in df_filtered.columns else "N/A",
-            f"{int(df_filtered['population'].min()):,} hab."
+            f"{format_int_fr(df_filtered['population'].min())} hab."
         )
 
 st.divider()
 st.header("Carte des Villes Françaises")
 
 if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
+    if 'population' in df_filtered.columns:
+        df_filtered = df_filtered.copy()
+        df_filtered['population_fr'] = df_filtered['population'].apply(format_int_fr)
+
     # Define base map properties
     fig = px.scatter_mapbox(
         df_filtered,
@@ -99,7 +104,8 @@ if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
         lon='lon',
         hover_name='ville' if 'ville' in df_filtered.columns else None,
         hover_data={
-            'population': ':,',
+            'population': False,
+            'population_fr': True,
             'lat': ':.4f',
             'lon': ':.4f'
         } if 'population' in df_filtered.columns else None,

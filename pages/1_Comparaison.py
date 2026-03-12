@@ -20,8 +20,10 @@ from utils.data_loader import (
     get_employment_data,
     get_housing_data,
     get_weather_current,
-    get_weather_forecast
+    get_weather_forecast,
+    get_formation_data
 )
+from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Comparaison de Villes", page_icon="🔄", layout="wide", initial_sidebar_state="collapsed")
 
@@ -91,11 +93,12 @@ if info1 is None or info2 is None:
 st.divider()
 
 # Onglets de comparaison
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🔍 Comparaison intelligente",
     "📊 Vue d'ensemble",
     "👥 Démographie",
     "💼 Emploi",
+    "🎓 Formations",
     "🏠 Logement",
     "🌤️ Météo"
 ])
@@ -157,7 +160,7 @@ with tab2:
         st.subheader(f"🏙️ {city1}")
         
         if 'population' in info1:
-            st.metric("Population", f"{int(info1['population']):,}")
+            st.metric("Population", format_int_fr(info1['population']))
         
         if 'altitude' in info1 and info1['altitude']:
             st.metric("Altitude", f"{int(info1['altitude'])} m")
@@ -169,7 +172,7 @@ with tab2:
         st.subheader(f"🏙️ {city2}")
         
         if 'population' in info2:
-            st.metric("Population", f"{int(info2['population']):,}")
+            st.metric("Population", format_int_fr(info2['population']))
         
         if 'altitude' in info2 and info2['altitude']:
             st.metric("Altitude", f"{int(info2['altitude'])} m")
@@ -190,13 +193,14 @@ with tab2:
             'lon': [info1['lon'], info2['lon']],
             'population': [info1.get('population', 0), info2.get('population', 0)]
         })
+        map_data['population_fr'] = map_data['population'].apply(format_int_fr)
         
         fig_map = px.scatter_mapbox(
             map_data,
             lat='lat',
             lon='lon',
             hover_name='ville',
-            hover_data={'population': ':,', 'lat': False, 'lon': False},
+            hover_data={'population': False, 'population_fr': True, 'lat': False, 'lon': False},
             size='population',
             color='ville',
             zoom=5,
@@ -213,6 +217,21 @@ with tab3:
         pop1 = int(info1['population'])
         pop2 = int(info2['population'])
         
+        # Statistiques
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(f"Population {city1}", format_int_fr(pop1))
+        
+        with col2:
+            st.metric(f"Population {city2}", format_int_fr(pop2))
+        
+        with col3:
+            diff = pop1 - pop2
+            st.metric("Différence", format_int_fr(abs(diff)))
+
+        st.divider()
+
         # Graphique de comparaison
         fig_demo = go.Figure()
         
@@ -220,7 +239,7 @@ with tab3:
             name=city1,
             x=['Population'],
             y=[pop1],
-            text=[f"{pop1:,}"],
+            text=[format_int_fr(pop1)],
             textposition='auto',
             marker_color='#1f77b4'
         ))
@@ -229,7 +248,7 @@ with tab3:
             name=city2,
             x=['Population'],
             y=[pop2],
-            text=[f"{pop2:,}"],
+            text=[format_int_fr(pop2)],
             textposition='auto',
             marker_color='#ff7f0e'
         ))
@@ -243,25 +262,7 @@ with tab3:
         
         st.plotly_chart(fig_demo, use_container_width=True)
         
-        # Statistiques
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric(f"Population {city1}", f"{pop1:,}")
-        
-        with col2:
-            st.metric(f"Population {city2}", f"{pop2:,}")
-        
-        with col3:
-            diff = pop1 - pop2
-            pct = (diff / pop2 * 100) if pop2 > 0 else 0
-            st.metric(
-                "Différence", 
-                f"{abs(diff):,}",
-                f"{pct:+.1f}%"
-            )
-
-        st.divider()
+        st.divider()       
 
         # Normaliser les codes département pour éviter les écarts de format (ex: 01 vs 1)
         def _normalize_dept_code(value):
@@ -295,14 +296,14 @@ with tab3:
 
         with c1:
             st.markdown(f"**{city1}**")
-            st.metric("Villes dans le département", f"{nb_villes_dept_1:,}")
+            st.metric("Villes dans le département", format_int_fr(nb_villes_dept_1))
             st.metric("Rang dans le département", f"#{rang_dept_1}" if rang_dept_1 > 0 else "N/A")
             st.metric("Rang national", f"#{rank_nat_1}")
             st.metric("Part de population", f"{part_pop_1:.2f}%")
 
         with c2:
             st.markdown(f"**{city2}**")
-            st.metric("Villes dans le département", f"{nb_villes_dept_2:,}")
+            st.metric("Villes dans le département", format_int_fr(nb_villes_dept_2))
             st.metric("Rang dans le département", f"#{rang_dept_2}" if rang_dept_2 > 0 else "N/A")
             st.metric("Rang national", f"#{rank_nat_2}")
             st.metric("Part de population", f"{part_pop_2:.2f}%")
@@ -338,7 +339,7 @@ with tab4:
                 taux_emploi1 = emp1.get('taux_emploi', 'N/A')
                 st.metric("Taux d'emploi", f"{taux_emploi1}%" if taux_emploi1 != 'N/A' else 'N/A')
                 pop1 = emp1.get('population_15_64', 'N/A')
-                st.metric("Population 15-64 ans", f"{pop1:,}" if pop1 != 'N/A' else 'N/A')
+                st.metric("Population 15-64 ans", format_int_fr(pop1) if pop1 != 'N/A' else 'N/A')
             
             with col2:
                 st.subheader(f"💼 {city2}")
@@ -349,7 +350,7 @@ with tab4:
                 taux_emploi2 = emp2.get('taux_emploi', 'N/A')
                 st.metric("Taux d'emploi", f"{taux_emploi2}%" if taux_emploi2 != 'N/A' else 'N/A')
                 pop2 = emp2.get('population_15_64', 'N/A')
-                st.metric("Population 15-64 ans", f"{pop2:,}" if pop2 != 'N/A' else 'N/A')
+                st.metric("Population 15-64 ans", format_int_fr(pop2) if pop2 != 'N/A' else 'N/A')
             
             st.divider()
 
@@ -378,31 +379,6 @@ with tab4:
                 fig_rates.update_layout(yaxis_title="Pourcentage (%)")
                 st.plotly_chart(fig_rates, use_container_width=True)
 
-            st.divider()
-            # 3) Écarts entre villes
-            if all(v != 'N/A' for v in [taux_chomage1, taux_chomage2, taux_activite1, taux_activite2, taux_emploi1, taux_emploi2]):
-                gaps_df = pd.DataFrame({
-                    'Indicateur': ["Chômage", "Activité", "Emploi"],
-                    'Écart (ville 1 - ville 2)': [
-                        taux_chomage1 - taux_chomage2,
-                        taux_activite1 - taux_activite2,
-                        taux_emploi1 - taux_emploi2
-                    ]
-                })
-                gaps_df['Couleur'] = gaps_df['Écart (ville 1 - ville 2)'].apply(lambda x: 'Supérieur' if x >= 0 else 'Inférieur')
-
-                fig_gaps = px.bar(
-                    gaps_df,
-                    x='Indicateur',
-                    y='Écart (ville 1 - ville 2)',
-                    color='Couleur',
-                    text='Écart (ville 1 - ville 2)',
-                    title=f"Écarts de {city1} par rapport à {city2} (points)",
-                    color_discrete_map={'Supérieur': '#16a34a', 'Inférieur': '#dc2626'}
-                )
-                fig_gaps.update_traces(texttemplate='%{text:.1f}', textposition='outside')
-                fig_gaps.update_layout(yaxis_title="Points de pourcentage")
-                st.plotly_chart(fig_gaps, use_container_width=True)
             st.divider()
             
             # 2) Structure de la population 15-64 ans (en %)
@@ -453,6 +429,7 @@ with tab4:
                         actifs_occupes2, chomeurs2, inactifs2
                     ]
                 })
+                volumes_df['Effectif_fr'] = volumes_df['Effectif'].apply(format_int_fr)
 
                 fig_volumes = px.bar(
                     volumes_df,
@@ -460,13 +437,49 @@ with tab4:
                     y='Effectif',
                     color='Ville',
                     barmode='group',
-                    text='Effectif',
+                    text='Effectif_fr',
                     title="Comparaison des effectifs (15-64 ans)",
                     color_discrete_sequence=['#1f77b4', '#ff7f0e']
                 )
-                fig_volumes.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+                fig_volumes.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_volumes.update_layout(yaxis_title="Nombre de personnes")
+
+                
                 st.plotly_chart(fig_volumes, use_container_width=True)
+
+            st.divider()
+            # ── PCS : structure socio-professionnelle ──
+            form1 = get_formation_data(city1, info1['ville_nom'], info1['departement_code'])
+            form2 = get_formation_data(city2, info2['ville_nom'], info2['departement_code'])
+
+            if form1 and form2 and sum(form1.get('pcs_values', [])) > 0 and sum(form2.get('pcs_values', [])) > 0:
+                pcs_left, pcs_right = st.columns(2)
+
+                with pcs_left:
+                    fig_pcs1 = px.pie(
+                        names=form1['pcs_labels'],
+                        values=form1['pcs_values'],
+                        title=f"CSP — {city1}",
+                        color_discrete_sequence=px.colors.qualitative.Set2,
+                        hole=0.35,
+                        height=380
+                    )
+                    fig_pcs1.update_traces(textposition='outside', textinfo='label+percent')
+                    st.plotly_chart(fig_pcs1, use_container_width=True)
+
+                with pcs_right:
+                    fig_pcs2 = px.pie(
+                        names=form2['pcs_labels'],
+                        values=form2['pcs_values'],
+                        title=f"CSP — {city2}",
+                        color_discrete_sequence=px.colors.qualitative.Set2,
+                        hole=0.35,
+                        height=380
+                    )
+                    fig_pcs2.update_traces(textposition='outside', textinfo='label+percent')
+                    st.plotly_chart(fig_pcs2, use_container_width=True)
+            else:
+                st.info("ℹ️ Données CSP non disponibles pour ce comparatif")
                 
         else:
             st.warning("⚠️ Données d'emploi non disponibles pour l'une ou les deux villes")
@@ -474,7 +487,7 @@ with tab4:
         st.warning("⚠️ Informations manquantes pour l'une ou les deux villes")
 
 # ====== TAB 5: LOGEMENT ======
-with tab5:
+with tab6:
     st.header("🏠 Comparaison du Logement")
     
     if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
@@ -518,7 +531,7 @@ with tab5:
             with col1:
                 st.subheader(f"🏠 {city1}")
                 nb_log1 = log1.get('nombre_logements', 'N/A')
-                st.metric("Nombre de logements", f"{nb_log1:,}" if nb_log1 != 'N/A' else 'N/A')
+                st.metric("Nombre de logements", format_int_fr(nb_log1) if nb_log1 != 'N/A' else 'N/A')
                 
                 taux_princ1 = 100 - log1.get('taux_residence_secondaire', 0) - log1.get('taux_logements_vacants', 0)
                 st.metric("Résidences principales", f"{taux_princ1:.1f}%")
@@ -528,7 +541,7 @@ with tab5:
             with col2:
                 st.subheader(f"🏠 {city2}")
                 nb_log2 = log2.get('nombre_logements', 'N/A')
-                st.metric("Nombre de logements", f"{nb_log2:,}" if nb_log2 != 'N/A' else 'N/A')
+                st.metric("Nombre de logements", format_int_fr(nb_log2) if nb_log2 != 'N/A' else 'N/A')
                 
                 taux_princ2 = 100 - log2.get('taux_residence_secondaire', 0) - log2.get('taux_logements_vacants', 0)
                 st.metric("Résidences principales", f"{taux_princ2:.1f}%")
@@ -694,8 +707,121 @@ with tab5:
     else:
         st.warning("⚠️ Informations manquantes pour l'une ou les deux villes")
 
-# ====== TAB 6: MÉTÉO ======
-with tab6:
+# ====== TAB 6: FORMATIONS ======
+with tab5:
+    st.header("🎓 Comparaison des Formations & Diplômes")
+
+    if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
+        form1 = get_formation_data(city1, info1['ville_nom'], info1['departement_code'])
+        form2 = get_formation_data(city2, info2['ville_nom'], info2['departement_code'])
+
+        if form1 and form2:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.caption(f"📍 {form1.get('commune', 'N/A')} — Département {info1['departement_code']} ({form1.get('annee', 'N/A')})")
+            with col2:
+                st.caption(f"📍 {form2.get('commune', 'N/A')} — Département {info2['departement_code']} ({form2.get('annee', 'N/A')})")
+
+            st.divider()
+
+            # ── Métriques résumées ──
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                st.metric(f"🎓 Bac+2 et + ({city1})", f"{form1['part_superieur']}%")
+            with c2:
+                st.metric(f"🎓 Bac+2 et + ({city2})", f"{form2['part_superieur']}%")
+            with c3:
+                st.metric(f"Sans diplôme ({city1})", f"{form1['part_sans_diplome']}%")
+            with c4:
+                st.metric(f"Sans diplôme ({city2})", f"{form2['part_sans_diplome']}%")
+
+            st.divider()
+
+            # ── Répartition des diplômes (barres groupées) ──
+            dipl_total1 = sum(form1['actifs_by_dipl']) or 1
+            dipl_total2 = sum(form2['actifs_by_dipl']) or 1
+            dipl_pct1 = [round(v / dipl_total1 * 100, 1) for v in form1['actifs_by_dipl']]
+            dipl_pct2 = [round(v / dipl_total2 * 100, 1) for v in form2['actifs_by_dipl']]
+
+            dipl_df = pd.DataFrame({
+                'Niveau': form1['dipl_labels'] * 2,
+                'Ville': [city1] * 7 + [city2] * 7,
+                'Pourcentage': dipl_pct1 + dipl_pct2,
+            })
+
+            fig_dipl = px.bar(
+                dipl_df,
+                x='Niveau',
+                y='Pourcentage',
+                color='Ville',
+                barmode='group',
+                text='Pourcentage',
+                title="Distribution des diplômes parmi les actifs (%)",
+                color_discrete_sequence=['#1f77b4', '#ff7f0e'],
+                height=420
+            )
+            fig_dipl.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig_dipl.update_layout(yaxis_title="% des actifs", xaxis_title="")
+            st.plotly_chart(fig_dipl, use_container_width=True)
+
+            st.divider()
+
+            # ── Taux de chômage par niveau de diplôme ──
+            taux_df = pd.DataFrame({
+                'Niveau': form1['dipl_labels'] * 2,
+                'Ville': [city1] * 7 + [city2] * 7,
+                'Taux de chômage (%)': form1['taux_chomage_by_dipl'] + form2['taux_chomage_by_dipl'],
+            })
+
+            fig_taux = px.bar(
+                taux_df,
+                x='Niveau',
+                y='Taux de chômage (%)',
+                color='Ville',
+                barmode='group',
+                text='Taux de chômage (%)',
+                title="Risque de chômage par niveau de diplôme (%)",
+                color_discrete_sequence=['#e74c3c', '#3498db'],
+                height=420
+            )
+            fig_taux.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig_taux.update_layout(yaxis_title="Taux de chômage (%)", xaxis_title="")
+            st.plotly_chart(fig_taux, use_container_width=True)
+
+            st.divider()
+
+            radar_labels = ['Sans diplôme', 'CAP-BEP', 'Bac', 'Bac+2', 'Bac+3/4', 'Bac+5+']
+            radar_idx = [0, 2, 3, 4, 5, 6]  # indices dans dipl_pct
+            r1 = [dipl_pct1[i] for i in radar_idx]
+            r2 = [dipl_pct2[i] for i in radar_idx]
+
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(
+                r=r1 + [r1[0]],
+                theta=radar_labels + [radar_labels[0]],
+                fill='toself', name=city1,
+                line=dict(color='#1f77b4')
+            ))
+            fig_radar.add_trace(go.Scatterpolar(
+                r=r2 + [r2[0]],
+                theta=radar_labels + [radar_labels[0]],
+                fill='toself', name=city2,
+                line=dict(color='#ff7f0e')
+            ))
+            fig_radar.update_layout(
+                polar=dict(radialaxis=dict(visible=True)),
+                title="Profil comparatif des niveaux de diplôme (%)",
+                height=420
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+        else:
+            st.warning("⚠️ Données de formations non disponibles pour l'une ou les deux villes")
+    else:
+        st.warning("⚠️ Informations manquantes pour l'une ou les deux villes")
+
+# ====== TAB 7: MÉTÉO ======
+with tab7:
     st.header("🌤️ Comparaison Météo")
     
     col1, col2 = st.columns(2)
