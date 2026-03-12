@@ -26,16 +26,26 @@ inject_navbar_css()
 render_navbar("Accueil")
 
 # ===== Page Header =====
-st.markdown("""
-<div style="text-align:center; padding:1.5rem 0 0.5rem 0;">
-    <h1 style="font-size:2.2rem; font-weight:700; color:#1e293b; margin:0; letter-spacing:-1px;">
-        Explorez les villes françaises
-    </h1>
-    <p style="color:#64748b; font-size:1.05rem; margin-top:0.5rem;">
-        Carte interactive et données des villes de plus de 20 000 habitants
-    </p>
-</div>
-""", unsafe_allow_html=True)
+# ===== Page Header =====
+col_text, col_img = st.columns([1, 1])
+
+with col_text:
+    st.markdown("""
+    <div style="text-align:center; padding-top:9rem; padding-bottom:0.5rem;">
+        <h1 style="font-size:2.2rem; font-weight:700; color:#1e293b; margin:0; letter-spacing:-1px;">
+            Explorez les villes françaises
+        </h1>
+        <p style="color:#64748b; font-size:1.05rem; margin-top:0.5rem;">
+            Carte interactive et données des villes de plus de 20 000 habitants
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_img:
+    try:
+        st.image("city_skyline.png", use_container_width=True)
+    except:
+        pass # Silently fail if image is not found during some runs
 
 # Chargement des données
 with st.spinner("Chargement des données..."):
