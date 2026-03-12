@@ -132,7 +132,7 @@ with tab1:
     st.header("🔍 Comparaison intelligente")
 
     # Générer un verdict court via Groq, puis le lire en audio.
-    GROQ_API_KEY = "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"
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
     client = Groq(api_key=GROQ_API_KEY)
 
     if st.button("Lancer la comparaison", disabled=client is None):
