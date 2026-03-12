@@ -91,6 +91,29 @@ if info1 is None or info2 is None:
     st.error("❌ Impossible de récupérer les informations des villes")
     st.stop()
 
+
+# Données contextuelles communes (logement) pour affichage en tête de chaque onglet
+log1 = None
+log2 = None
+if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
+    log1 = get_housing_data(city1, info1['ville_nom'], info1['departement_code'])
+    log2 = get_housing_data(city2, info2['ville_nom'], info2['departement_code'])
+
+
+def _render_tab_context(log_data_1, log_data_2):
+    if log_data_1 and log_data_2:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.caption(f"📍 {log_data_1.get('commune', 'N/A')} ({log_data_1.get('annee', 'N/A')})")
+        with col2:
+            st.caption(f"📍 {log_data_2.get('commune', 'N/A')} ({log_data_2.get('annee', 'N/A')})")
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.caption(f"📍 {city1}")
+        with col2:
+            st.caption(f"📍 {city2}")
+
 st.divider()
 
 # Onglets de comparaison
@@ -114,7 +137,7 @@ with tab1:
     client = Groq(api_key=GROQ_API_KEY)
 
     # 4. Le bouton d'action
-    if st.button("Lancer la comparaison"):
+    if st.button("Lancer la comparaison", disabled=client is None):
         with st.spinner("L'IA prépare sa meilleure punchline pour M.Garnier..."):
             
             # --- LE NOUVEAU CERVEAU ---
@@ -154,12 +177,11 @@ with tab1:
 # ====== TAB 2: VUE D'ENSEMBLE ======
 with tab2:
     st.header("📊 Vue d'Ensemble")
-    
+    _render_tab_context(log1, log2)
+
     col1, col2 = st.columns(2)
     
-    with col1:
-        st.subheader(f"🏙️ {city1}")
-        
+    with col1:        
         if 'population' in info1:
             st.metric("Population", format_int_fr(info1['population']))
         
@@ -169,9 +191,7 @@ with tab2:
         if 'departement_code' in info1:
             st.metric("Département", info1['departement_code'])
     
-    with col2:
-        st.subheader(f"🏙️ {city2}")
-        
+    with col2:        
         if 'population' in info2:
             st.metric("Population", format_int_fr(info2['population']))
         
@@ -213,6 +233,7 @@ with tab2:
 # ====== TAB 3: DÉMOGRAPHIE ======
 with tab3:
     st.header("👥 Comparaison Démographique")
+    _render_tab_context(log1, log2)
     
     if 'population' in info1 and 'population' in info2:
         pop1 = int(info1['population'])
@@ -312,27 +333,18 @@ with tab3:
 # ====== TAB 4: EMPLOI ======
 with tab4:
     st.header("💼 Comparaison de l'Emploi")
-    
+    _render_tab_context(log1, log2)
+
     if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
         # Récupération des données d'emploi réelles
         emp1 = get_employment_data(city1, info1['ville_nom'], info1['departement_code'])
         emp2 = get_employment_data(city2, info2['ville_nom'], info2['departement_code'])
         
-        if emp1 and emp2:
-            # Informations contextuelles
-            col1, col2 = st.columns(2)
-            with col1:
-                st.caption(f"📍 {emp1.get('commune', 'N/A')} - Département {info1['departement_code']} ({emp1.get('annee', 'N/A')})")
-            with col2:
-                st.caption(f"📍 {emp2.get('commune', 'N/A')} - Département {info2['departement_code']} ({emp2.get('annee', 'N/A')})")
-            
-            st.divider()
-            
+        if emp1 and emp2:            
             # Métriques côte à côte
             col1, col2 = st.columns(2)
             
             with col1:
-                st.subheader(f"💼 {city1}")
                 taux_chomage1 = emp1.get('taux_chomage', 'N/A')
                 st.metric("Taux de chômage", f"{taux_chomage1}%" if taux_chomage1 != 'N/A' else 'N/A')
                 taux_activite1 = emp1.get('taux_activite', 'N/A')
@@ -343,7 +355,6 @@ with tab4:
                 st.metric("Population 15-64 ans", format_int_fr(pop1) if pop1 != 'N/A' else 'N/A')
             
             with col2:
-                st.subheader(f"💼 {city2}")
                 taux_chomage2 = emp2.get('taux_chomage', 'N/A')
                 st.metric("Taux de chômage", f"{taux_chomage2}%" if taux_chomage2 != 'N/A' else 'N/A')
                 taux_activite2 = emp2.get('taux_activite', 'N/A')
@@ -490,22 +501,14 @@ with tab4:
 # ====== TAB 5: LOGEMENT ======
 with tab6:
     st.header("🏠 Comparaison du Logement")
+    _render_tab_context(log1, log2)
     
     if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
         # Récupération des données de logement réelles
         log1 = get_housing_data(city1, info1['ville_nom'], info1['departement_code'])
         log2 = get_housing_data(city2, info2['ville_nom'], info2['departement_code'])
         
-        if log1 and log2:
-            # Informations contextuelles
-            col1, col2 = st.columns(2)
-            with col1:
-                st.caption(f"📍 {log1.get('commune', 'N/A')} ({log1.get('annee', 'N/A')})")
-            with col2:
-                st.caption(f"📍 {log2.get('commune', 'N/A')} ({log2.get('annee', 'N/A')})")
-            
-            st.divider()
-            
+        if log1 and log2:            
             # Métriques principales
             col1, col2, col3 = st.columns(3)
             
@@ -528,9 +531,7 @@ with tab6:
             
             # Détails par ville
             col1, col2 = st.columns(2)
-            
             with col1:
-                st.subheader(f"🏠 {city1}")
                 nb_log1 = log1.get('nombre_logements', 'N/A')
                 st.metric("Nombre de logements", format_int_fr(nb_log1) if nb_log1 != 'N/A' else 'N/A')
                 
@@ -540,7 +541,6 @@ with tab6:
                 st.metric("Logements vacants", f"{log1.get('taux_logements_vacants', 0)}%")
             
             with col2:
-                st.subheader(f"🏠 {city2}")
                 nb_log2 = log2.get('nombre_logements', 'N/A')
                 st.metric("Nombre de logements", format_int_fr(nb_log2) if nb_log2 != 'N/A' else 'N/A')
                 
@@ -711,21 +711,14 @@ with tab6:
 # ====== TAB 6: FORMATIONS ======
 with tab5:
     st.header("🎓 Comparaison des Formations & Diplômes")
+    _render_tab_context(log1, log2)
 
     if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
         form1 = get_formation_data(city1, info1['ville_nom'], info1['departement_code'])
         form2 = get_formation_data(city2, info2['ville_nom'], info2['departement_code'])
 
         if form1 and form2:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.caption(f"📍 {form1.get('commune', 'N/A')} — Département {info1['departement_code']} ({form1.get('annee', 'N/A')})")
-            with col2:
-                st.caption(f"📍 {form2.get('commune', 'N/A')} — Département {info2['departement_code']} ({form2.get('annee', 'N/A')})")
-
-            st.divider()
-
-            # ── Métriques résumées ──
+        # ── Métriques résumées ──
             c1, c2, c3, c4 = st.columns(4)
             with c1:
                 st.metric(f"🎓 Bac+2 et + ({city1})", f"{form1['part_superieur']}%")
@@ -824,7 +817,8 @@ with tab5:
 # ====== TAB 7: MÉTÉO ======
 with tab7:
     st.header("🌤️ Comparaison Météo")
-    
+    _render_tab_context(log1, log2)
+
     col1, col2 = st.columns(2)
     
     with col1:
@@ -905,6 +899,6 @@ with tab7:
         st.warning("⚠️ Prévisions météo non disponibles")   
 st.markdown("""
 <div class="site-footer">
-    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
+    <p>Sources : OpenDataSoft · INSEE · Open Data France · Open-Meteo</p>
 </div>
 """, unsafe_allow_html=True)

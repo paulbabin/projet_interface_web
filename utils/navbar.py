@@ -185,7 +185,7 @@ def render_navbar(active_page="Accueil"):
 
     with brand_col:
         st.markdown(
-            '<div class="navbar-brand-text">🏙️ <span>Compa</span>Ville</div>',
+            '<div class="navbar-brand-text">🏙️ <span>Méta</span>Polis</div>',
             unsafe_allow_html=True
         )
 

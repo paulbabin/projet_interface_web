@@ -189,6 +189,6 @@ if selected_city:
             
 st.markdown("""
 <div class="site-footer">
-    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
+    <p>Sources : OpenDataSoft · INSEE · Open Data France · Open-Meteo</p>
 </div>
 """, unsafe_allow_html=True)

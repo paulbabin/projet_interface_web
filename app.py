@@ -1,5 +1,5 @@
 """
-🏙️ CompaVille - Comparateur de Villes Françaises
+🏙️ MétaPolis - Comparateur de Villes Françaises
 Page principale avec carte interactive des villes > 20 000 habitants
 """
 import streamlit as st
@@ -17,7 +17,7 @@ from utils.number_format import format_int_fr
 
 # Configuration de la page
 st.set_page_config(
-    page_title="CompaVille - Comparateur de Villes",
+    page_title="MétaPolis - Comparateur de Villes",
     page_icon="🏙️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -203,6 +203,6 @@ if 'population' in df_filtered.columns:
 # Footer
 st.markdown("""
 <div class="site-footer">
-    <p>Sources : OpenDataSoft · Caisse des Dépôts · Open-Meteo · Open Data France</p>
+    <p>Sources : OpenDataSoft · INSEE · Open Data France · Open-Meteo</p>
 </div>
 """, unsafe_allow_html=True)
