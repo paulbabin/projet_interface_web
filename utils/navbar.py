@@ -180,7 +180,7 @@ def inject_navbar_css():
 def render_navbar(active_page="Accueil"):
     """Affiche la navbar avec st.page_link() pour la navigation interne (même onglet)."""
 
-    # Brand + links in columns
+    # Réserver une colonne pour la marque et les autres pour la navigation.
     brand_col, *link_cols = st.columns([2, 1, 1, 1, 1, 1, 1])
 
     with brand_col:
@@ -202,5 +202,4 @@ def render_navbar(active_page="Accueil"):
         with col:
             st.page_link(page_path, label=label)
 
-    # Séparateur sous la navbar
     st.markdown('<div style="border-bottom:1px solid #e2e8f0; margin: -0.5rem -1rem 1.5rem -1rem;"></div>', unsafe_allow_html=True)

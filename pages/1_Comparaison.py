@@ -21,9 +21,10 @@ from utils.data_loader import (
     get_housing_data,
     get_weather_current,
     get_weather_forecast,
-    get_formation_data
+    get_formation_data,
+    get_annual_temperature_average,
+    format_int_fr
 )
-from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Comparaison de Villes", page_icon="🔄", layout="wide", initial_sidebar_state="collapsed")
 
@@ -43,7 +44,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Chargement des données
+# Charger les villes disponibles pour alimenter tous les onglets.
 df_cities = load_cities_data()
 if df_cities.empty:
     st.error("❌ Impossible de charger les données")
@@ -56,9 +57,8 @@ if not city_list:
     st.stop()
 
 default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
-default_city2_index = (default_city_index + 1) % len(city_list) if len(city_list) > 1 else default_city_index
-
-# Sélection des villes
+default_city2_index = city_list.index("Poitiers (86)") if "Poitiers (86)" in city_list else 0
+# Sélection des deux villes à comparer.
 col1, col2 = st.columns(2)
 
 with col1:
@@ -83,7 +83,7 @@ if city1 == city2:
     st.warning("⚠️ Veuillez sélectionner deux villes différentes")
     st.stop()
 
-# Récupération des informations des villes
+# Charger les métadonnées communes utilisées dans les comparaisons.
 info1 = get_city_info(df_cities, city1)
 info2 = get_city_info(df_cities, city2)
 
@@ -92,7 +92,7 @@ if info1 is None or info2 is None:
     st.stop()
 
 
-# Données contextuelles communes (logement) pour affichage en tête de chaque onglet
+# Précharger le contexte logement pour afficher la commune et l'année en tête d'onglet.
 log1 = None
 log2 = None
 if 'departement_code' in info1 and 'departement_code' in info2 and 'ville_nom' in info1 and 'ville_nom' in info2:
@@ -116,7 +116,7 @@ def _render_tab_context(log_data_1, log_data_2):
 
 st.divider()
 
-# Onglets de comparaison
+# Répartir la comparaison par thème métier.
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🔍 Comparaison intelligente",
     "📊 Vue d'ensemble",
@@ -129,18 +129,14 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 
 
 with tab1:
-    # 1. Configuration de la page Streamlit
     st.header("🔍 Comparaison intelligente")
 
-    # 2. Configuration de l'API Groq
-    GROQ_API_KEY = "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" # À remplacer par ta vraie clé bien sûr !
+    # Générer un verdict court via Groq, puis le lire en audio.
+    GROQ_API_KEY = "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"
     client = Groq(api_key=GROQ_API_KEY)
 
-    # 4. Le bouton d'action
     if st.button("Lancer la comparaison", disabled=client is None):
         with st.spinner("L'IA prépare sa meilleure punchline pour M.Garnier..."):
-            
-            # --- LE NOUVEAU CERVEAU ---
             prompt = f"""
             Ton rôle est de convaincre François Garnier, le professeur qui nous évalue, de choisir entre {city1} et {city2}. 
             Adresse-toi directement à lui par son prénom (ex: "François, écoute-moi bien...", "Franchement François...").
@@ -154,13 +150,11 @@ with tab1:
                 model="llama-3.3-70b-versatile",
             )
             texte_ia = reponse.choices[0].message.content
-            
-            # On affiche le texte à l'écran
+
             st.success("Verdict pour M. Garnier :")
             st.write(f"**{texte_ia}**")
                     
             try:
-                # 1. On transforme le texte généré en audio
                 tts = gTTS(text=texte_ia, lang='fr', tld='fr')
                 
                 fichier_audio = "clash_ia.mp3"
@@ -172,9 +166,6 @@ with tab1:
             except Exception as e:
                 st.error(f"Oups, le lecteur audio a planté : {e}")
 
-
-            
-# ====== TAB 2: VUE D'ENSEMBLE ======
 with tab2:
     st.header("📊 Vue d'Ensemble")
     _render_tab_context(log1, log2)
@@ -818,11 +809,27 @@ with tab5:
 with tab7:
     st.header("🌤️ Comparaison Météo")
     _render_tab_context(log1, log2)
+    current_year = pd.Timestamp.today().year
+    
+    col_temp1, col_temp2 = st.columns(2)
+    
+    with col_temp1:
+        with st.spinner("Calcul température moyenne..."):
+            avg_temp1 = get_annual_temperature_average(city1)
+        if avg_temp1 is not None:
+            st.metric(f"Température moyenne annuelle ({current_year})", f"{avg_temp1}°C")
+            
+    with col_temp2:
+        with st.spinner("Calcul température moyenne..."):
+            avg_temp2 = get_annual_temperature_average(city2)
+        if avg_temp2 is not None:
+            st.metric(f"Température moyenne annuelle ({current_year})", f"{avg_temp2}°C")
+    
+    st.divider()
 
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader(f"🌤️ {city1}")
         with st.spinner("Chargement météo..."):
             weather1 = get_weather_current(city1)
             if weather1 and 'current_condition' in weather1:
@@ -836,7 +843,6 @@ with tab7:
                     st.info(f"☁️ {current1['weatherDesc'][0].get('value', 'N/A')}")
     
     with col2:
-        st.subheader(f"🌤️ {city2}")
         with st.spinner("Chargement météo..."):
             weather2 = get_weather_current(city2)
             if weather2 and 'current_condition' in weather2:

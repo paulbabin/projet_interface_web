@@ -12,9 +12,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 from utils.data_loader import (
     load_cities_data,
     get_city_list,
-    get_city_info
+    get_city_info,
+    format_int_fr
 )
-from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Focus sur une ville", page_icon="🎯", layout="wide", initial_sidebar_state="collapsed")
 
@@ -27,12 +27,11 @@ render_navbar("Focus sur une ville")
 st.title("Focus sur une ville")
 st.markdown("Informations détaillées sur les villes françaises")
 
-# Chargement des données
+# Charger les villes puis les métadonnées de la commune sélectionnée.
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
 default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
-# Sélection de ville
 selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
@@ -41,7 +40,7 @@ if selected_city:
     if city_info is not None:
         st.header(f"🏙️ {selected_city}")
         
-        # Informations principales
+        # Donner les repères clés de la commune avant les comparaisons de contexte.
         st.subheader("📍 Informations Principales")
         
         col1, col2, col3 = st.columns(3)
@@ -72,7 +71,7 @@ if selected_city:
         
         st.divider()
         
-        # Carte de localisation
+        # Situer la ville sur une carte centrée sur ses coordonnées.
         st.subheader("🗺️ Localisation")
         
         if 'lat' in city_info and 'lon' in city_info:
@@ -80,7 +79,7 @@ if selected_city:
                 'ville': [selected_city],
                 'lat': [city_info['lat']],
                 'lon': [city_info['lon']],
-                'taille': [20] # Pour avoir un beau marqueur
+                'taille': [20]
             })
             
             fig_map = px.scatter_mapbox(
@@ -96,7 +95,6 @@ if selected_city:
                 height=400
             )
             
-            # Style carto-positron
             fig_map.update_layout(
                 mapbox_style="carto-positron",
                 margin={"r":0,"t":0,"l":0,"b":0},
@@ -106,10 +104,9 @@ if selected_city:
         
         st.divider()
         
-        # Comparaison avec les villes voisines
+        # Positionner la ville parmi les plus grandes communes de son département.
         st.subheader("🏘️ Comparaison Régionale")
         
-        # Filtrer les villes du même département
         if 'departement_code' in city_info and 'departement_code' in df_cities.columns:
             same_dept = df_cities[
                 (df_cities['departement_code'] == city_info['departement_code']) &
@@ -118,10 +115,8 @@ if selected_city:
             
             if not same_dept.empty and 'population' in same_dept.columns:
                 
-                # Top 5 des villes du département
                 top_dept = same_dept.nlargest(5, 'population')[['ville', 'population']]
                 
-                # Ajouter la ville sélectionnée
                 current_city_data = pd.DataFrame({
                     'ville': [selected_city],
                     'population': [city_info.get('population', 0)]
@@ -131,7 +126,6 @@ if selected_city:
                 combined = combined.sort_values('population', ascending=True)
                 combined['population_fr'] = combined['population'].apply(format_int_fr)
                 
-                # Graphique
                 fig_dept = px.bar(
                     combined,
                     x='population',
@@ -147,7 +141,6 @@ if selected_city:
                 fig_dept.update_layout(height=400, showlegend=False)
                 st.plotly_chart(fig_dept, use_container_width=True)
                 
-                # Statistiques du département
                 col1, col2 = st.columns(2)
                 
                 with col1:
@@ -165,7 +158,7 @@ if selected_city:
         
         st.divider()
         
-        # Statistiques nationales
+        # Donner enfin un repère national pour la commune choisie.
         st.subheader("🏘️ Contexte National")
         
         if 'population' in city_info and 'population' in df_cities.columns:

@@ -8,14 +8,12 @@ import plotly.express as px
 import sys
 from pathlib import Path
 
-# Ajouter le répertoire parent au path pour importer utils
+# Ajouter le dossier racine au path pour charger les utilitaires partagés.
 sys.path.append(str(Path(__file__).parent))
-from utils.data_loader import load_cities_data
+from utils.data_loader import load_cities_data, format_int_fr
 from utils.navbar import inject_navbar_css, render_navbar
 from utils.style import COLOR_SEQUENCE, COLOR_MEDIUM
-from utils.number_format import format_int_fr
 
-# Configuration de la page
 st.set_page_config(
     page_title="MétaPolis - Comparateur de Villes",
     page_icon="🏙️",
@@ -23,12 +21,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ===== Navbar =====
 inject_navbar_css()
 render_navbar("Accueil")
 
-# ===== Page Header =====
-# ===== Page Header =====
+# En-tête d'accueil avec un visuel optionnel.
 col_text, col_img = st.columns([1, 1])
 
 with col_text:
@@ -46,10 +42,10 @@ with col_text:
 with col_img:
     try:
         st.image("city_skyline.png", use_container_width=True)
-    except:
-        pass # Silently fail if image is not found during some runs
+    except Exception:
+        pass
 
-# Chargement des données
+# Charger la base des villes avant de construire les indicateurs nationaux.
 with st.spinner("Chargement des données..."):
     df_cities = load_cities_data()
 
@@ -57,10 +53,9 @@ if df_cities.empty:
     st.error("❌ Impossible de charger les données des villes")
     st.stop()
 
-# ===== Données complètes (sans filtre) =====
 df_filtered = df_cities
 
-# ===== Contenu principal (sans onglets) =====
+# Présenter une synthèse nationale avant les vues détaillées.
 st.header("Statistiques")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -98,7 +93,7 @@ if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
         df_filtered = df_filtered.copy()
         df_filtered['population_fr'] = df_filtered['population'].apply(format_int_fr)
 
-    # Define base map properties
+    # Cartographier les villes éligibles selon leur position et leur population.
     fig = px.scatter_mapbox(
         df_filtered,
         lat='lat',
@@ -112,17 +107,14 @@ if 'lat' in df_filtered.columns and 'lon' in df_filtered.columns:
         } if 'population' in df_filtered.columns else None,
         size='population' if 'population' in df_filtered.columns else None,
         color='population' if 'population' in df_filtered.columns else None,
-        # Echelle de couleur du bleu clair au bleu foncé/violet
         color_continuous_scale=COLOR_SEQUENCE,
-        # Caper l'échelle de couleur à 500 000 pour mieux voir les nuances des villes moyennes
         range_color=[0, 500000],
         size_max=35,
         zoom=4.8,
-        center={'lat': 46.603354, 'lon': 1.888334}, # Centre de la France
+        center={'lat': 46.603354, 'lon': 1.888334},
         height=600,
     )
 
-    # Style 'carto-positron' public
     fig.update_layout(
         mapbox_style="carto-positron",
         margin={"r":0,"t":0,"l":0,"b":0},
@@ -200,7 +192,6 @@ if 'population' in df_filtered.columns:
         key="download_stats"
     )
 
-# Footer
 st.markdown("""
 <div class="site-footer">
     <p>Sources : OpenDataSoft · INSEE · Open Data France · Open-Meteo</p>

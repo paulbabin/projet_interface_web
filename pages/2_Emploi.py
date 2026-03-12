@@ -14,9 +14,9 @@ from utils.data_loader import (
     load_cities_data,
     get_city_list,
     get_city_info,
-    get_employment_data
+    get_employment_data,
+    format_int_fr
 )
-from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Emploi", page_icon="💼", layout="wide", initial_sidebar_state="collapsed")
 
@@ -37,12 +37,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Chargement des données
+# Charger les villes avant de récupérer les indicateurs emploi d'une commune.
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
 default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
-# Sélection de ville
 selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
@@ -54,12 +53,11 @@ if selected_city:
         
         st.header(f"📊 Données d'emploi - {selected_city}")
         
-        # Récupérer les données d'emploi réelles
+        # Charger les indicateurs emploi agrégés pour la commune sélectionnée.
         emp_data = get_employment_data(selected_city, ville_nom, departement_code)
         
         if emp_data:
-            
-            # Métriques principales
+            # Afficher les taux-clés avant les volumes détaillés.
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
@@ -104,7 +102,6 @@ if selected_city:
             inactifs = emp_data.get('inactifs', 'N/A')
             autres_inactifs = emp_data.get('autres_inactifs', 'N/A')
 
-            # Grille 2 x 3
             row1_col1, row1_col2 = st.columns(2)
             with row1_col1:
                 st.metric("👥 Population 15-64 ans", format_int_fr(pop_15_64) if pop_15_64 != 'N/A' else 'N/A')

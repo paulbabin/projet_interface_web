@@ -19,6 +19,17 @@ LOGEMENT_FILE = Path(__file__).parent.parent / "data" / "logement.csv"
 EMPLOI_FILE = Path(__file__).parent.parent / "data" / "emploi.csv"
 
 
+def format_int_fr(value) -> str:
+    """
+    Formate un entier avec séparateur de milliers espace.
+    Ex: 1234567 -> "1 234 567"
+    """
+    try:
+        return f"{int(value):,}".replace(",", " ")
+    except Exception:
+        return "N/A"
+
+
 def _weather_code_to_label(code: Optional[int]) -> str:
     labels = {
         0: "Ciel dégagé",
@@ -81,7 +92,7 @@ def _read_insee_csv(file_path: Path, required_columns: List[str]) -> pd.DataFram
                 if df.empty:
                     continue
 
-                # Nettoyer les noms de colonnes (espaces parasites)
+                # Normaliser les noms de colonnes pour gérer les exports INSEE hétérogènes.
                 rename_map = {
                     original: str(original).strip()
                     for original in df.columns
@@ -124,15 +135,10 @@ def _is_arrondissement(ville_name: str) -> bool:
     if not ville_name:
         return False
     
-    # Pattern 1: Format complet avec "Arrondissement"
-    # Ex: "Paris 10e Arrondissement", "Marseille 1er Arrondissement"
     arrondissement_pattern = r'\s+\d+(er|e|ème)\s+(Arrondissement|arrondissement)'
     if re.search(arrondissement_pattern, ville_name):
         return True
     
-    # Pattern 2: Format court avec deux chiffres
-    # Ex: "Marseille 01", "Lyon 03", "Paris 15"
-    # Vérifie que c'est bien une grande ville suivie de 01-20 (arrondissements)
     short_pattern = r'^(Paris|Marseille|Lyon)\s+\d{2}$'
     if re.search(short_pattern, ville_name):
         return True
@@ -150,7 +156,6 @@ def _extract_main_city_name(ville_name: str) -> Optional[str]:
     if not ville_name:
         return None
     
-    # Pattern pour extraire le nom de la ville avant l'arrondissement
     match = re.match(r'^(Paris|Marseille|Lyon)', ville_name)
     if match:
         return match.group(1)
@@ -168,7 +173,7 @@ def load_cities_data() -> pd.DataFrame:
     all_rows = []
     
     try:
-        # Requête pour chaque territoire français
+        # Interroger chaque territoire français pour couvrir métropole et outre-mer.
         for country_code in FRANCE_TERRITORIES:
             url = f"{CITIES_API_BASE_URL}&refine.country_code={country_code}"
             try:
@@ -182,17 +187,17 @@ def load_cities_data() -> pd.DataFrame:
                     ville_name = fields.get('name')
                     departement_code = fields.get('admin2_code')
                     
-                    # Si c'est un arrondissement, extraire le nom de la ville principale
+                    # Regrouper les arrondissements sous la ville principale.
                     if ville_name and _is_arrondissement(ville_name):
                         main_city = _extract_main_city_name(ville_name)
                         if main_city:
                             ville_name = main_city
                     
-                    # Exception pour le département 75 : ne garder que Paris
+                    # Éviter les doublons d'arrondissements pour Paris.
                     if departement_code == '75' and ville_name != 'Paris':
                         continue
                     
-                    # Ajouter le département entre parenthèses pour différencier les villes homonymes
+                    # Désambiguïser les villes homonymes dans les listes de sélection.
                     if ville_name and departement_code:
                         ville_display = f"{ville_name} ({departement_code})"
                     else:
@@ -204,7 +209,7 @@ def load_cities_data() -> pd.DataFrame:
 
                     all_rows.append({
                         'ville': ville_display,
-                        'ville_nom': ville_name,  # Nom original pour recherches
+                        'ville_nom': ville_name,
                         'population': fields.get('population'),
                         'region_code': fields.get('admin1_code'),
                         'departement_code': departement_code,
@@ -215,21 +220,19 @@ def load_cities_data() -> pd.DataFrame:
                         'lon': lon
                     })
             except Exception as e:
-                # Continue même si un territoire échoue
                 st.warning(f"Impossible de charger les données pour {country_code}: {e}")
                 continue
 
-        # Convertir en DataFrame
         df = pd.DataFrame(all_rows)
         
-        # Agréger les arrondissements par ville principale
+            # Fusionner les arrondissements pour obtenir une ligne par grande ville.
         if not df.empty:
             agg_dict = {
-                'population': 'sum',  # Cumuler la population
-                'lat': 'mean',  # Moyenner les coordonnées
+                'population': 'sum',
+                'lat': 'mean',
                 'lon': 'mean',
                 'altitude': 'mean',
-                'region_code': 'first',  # Garder le premier
+                'region_code': 'first',
                 'departement_code': 'first',
                 'pays': 'first',
                 'timezone': 'first',
@@ -494,6 +497,67 @@ def get_weather_forecast(city: str) -> List[Dict]:
         return forecast
     except Exception:
         return []
+
+
+@st.cache_data(ttl=3600)
+def get_annual_temperature_average(city: str) -> Optional[float]:
+    """
+    Récupère la température moyenne annuelle depuis le début de l'année en cours
+    Utilise l'API Open-Meteo Archive
+    """
+    try:
+        from datetime import date
+        
+        df_cities = load_cities_data()
+        if df_cities.empty or 'ville' not in df_cities.columns:
+            return None
+
+        city_match = df_cities[df_cities['ville'].str.lower() == city.lower()]
+        if city_match.empty:
+            return None
+
+        city_info = city_match.iloc[0]
+        lat = city_info.get('lat')
+        lon = city_info.get('lon')
+
+        if pd.isna(lat) or pd.isna(lon):
+            return None
+
+        # Récupérer les données du 01/01 de l'année courante à aujourd'hui
+        today = date.today()
+        current_year = today.year
+        start_date = f"{current_year}-01-01"
+        end_date = today.strftime("%Y-%m-%d")
+
+        params = {
+            "latitude": float(lat),
+            "longitude": float(lon),
+            "start_date": start_date,
+            "end_date": end_date,
+            "daily": "temperature_2m_max,temperature_2m_min",
+            "timezone": "auto"
+        }
+        
+        response = requests.get("https://archive-api.open-meteo.com/v1/archive", params=params, timeout=10)
+        response.raise_for_status()
+
+        daily = response.json().get('daily', {})
+        max_temps = daily.get('temperature_2m_max', [])
+        min_temps = daily.get('temperature_2m_min', [])
+
+        if not max_temps or not min_temps:
+            return None
+
+        # Calculer la moyenne annuelle
+        all_temps = [t for t in max_temps + min_temps if t is not None]
+        if not all_temps:
+            return None
+
+        avg_temp = sum(all_temps) / len(all_temps)
+        return round(avg_temp, 1)
+
+    except Exception:
+        return None
 
 
 def get_employment_data(city: str, ville_nom: str, departement_code: str) -> Optional[Dict]:

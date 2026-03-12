@@ -14,9 +14,9 @@ from utils.data_loader import (
     load_cities_data,
     get_city_list,
     get_city_info,
-    get_housing_data
+    get_housing_data,
+    format_int_fr
 )
-from utils.number_format import format_int_fr
 
 st.set_page_config(page_title="Logement", page_icon="🏠", layout="wide", initial_sidebar_state="collapsed")
 
@@ -37,12 +37,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Chargement des données
+# Charger les villes avant de récupérer les indicateurs logement de la commune choisie.
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
 default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
-# Sélection de ville
 selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
@@ -54,12 +53,11 @@ if selected_city:
         
         st.header(f"🏠 Marché du logement - {selected_city}")
         
-        # Récupérer les données de logement réelles
+        # Charger les indicateurs logement consolidés pour la commune sélectionnée.
         housing_data = get_housing_data(selected_city, ville_nom, departement_code)
         
         if housing_data:
-            
-            # Métriques principales
+            # Présenter d'abord les métriques du parc de logements.
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
@@ -122,11 +120,10 @@ if selected_city:
             
             st.divider()
             
-            # Graphiques
             col_left, col_right = st.columns(2)
             
             with col_left:
-                # Répartition des types de résidences
+                # Répartition des logements par usage principal, secondaire ou vacant.
                 st.subheader("🏘️ Visualisation")
                 
                 nb_logements = housing_data.get('nombre_logements', 0)
@@ -160,7 +157,7 @@ if selected_city:
                     st.warning("⚠️ Données de répartition non disponibles")
             
             with col_right:
-                # Maisons vs Appartements
+                # Structure du parc entre maisons et appartements.
                 st.subheader("")
                 
                 taux_maisons = housing_data.get('taux_maisons', 'N/A')

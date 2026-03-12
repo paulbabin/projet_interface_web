@@ -36,18 +36,16 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Chargement des données
+# Charger les villes disponibles avant les appels météo.
 df_cities = load_cities_data()
 city_list = get_city_list(df_cities)
 default_city_index = city_list.index("Niort (79)") if "Niort (79)" in city_list else 0
 
-# Sélection de ville
 selected_city = st.selectbox("🏙️ Sélectionnez une ville", city_list, index=default_city_index)
 
 if selected_city:
     st.header(f"🌤️ Météo - {selected_city}")
     
-    # Météo actuelle
     with st.spinner("☁️ Chargement des données météo..."):
         weather_data = get_weather_current(selected_city)
     
@@ -56,7 +54,7 @@ if selected_city:
         
         st.subheader("📍 Conditions Actuelles")
         
-        # Métriques principales
+        # Afficher les conditions immédiates avant les prévisions.
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -91,7 +89,6 @@ if selected_city:
                 help="Température ressentie"
             )
         
-        # Informations supplémentaires
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -108,16 +105,15 @@ if selected_city:
         
         st.divider()
         
-        # Prévisions
+        # Compléter avec les trois prochains jours.
         st.subheader("📅 Prévisions à 3 jours")
         
         forecast_data = get_weather_forecast(selected_city)
         
         if forecast_data:
-            # Préparer les données de prévisions
             forecast_list = []
             
-            for day in forecast_data[:3]:  # 3 jours
+            for day in forecast_data[:3]:
                 date = day.get('date', 'N/A')
                 max_temp = day.get('maxtempC', 'N/A')
                 min_temp = day.get('mintempC', 'N/A')
@@ -135,7 +131,6 @@ if selected_city:
                     'Conditions': weather_desc
                 })
             
-            # Affichage des prévisions en colonnes
             cols = st.columns(len(forecast_list))
             
             for idx, (col, forecast) in enumerate(zip(cols, forecast_list)):
@@ -149,7 +144,6 @@ if selected_city:
             if forecast_list:
                 forecast_df = pd.DataFrame(forecast_list)
                 
-                # Convertir en numérique
                 forecast_df['Température Max'] = pd.to_numeric(forecast_df['Température Max'], errors='coerce')
                 forecast_df['Température Min'] = pd.to_numeric(forecast_df['Température Min'], errors='coerce')
                 forecast_df['Date affichée'] = pd.to_datetime(forecast_df['Date'], errors='coerce').dt.strftime('%d/%m/%Y')
