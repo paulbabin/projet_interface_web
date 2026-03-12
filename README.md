@@ -134,3 +134,4 @@ Le projet est aussi accessible via :
 ## 9) Auteurs
 
 Projet réalisé en groupe par B.Paul A.Constant B.Rafael et B.Nathael dans le cadre du challenge de réalisation d’un tableau de bord data interactif.
+
