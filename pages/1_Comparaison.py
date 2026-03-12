@@ -9,8 +9,8 @@ import pandas as pd
 import sys
 from pathlib import Path
 from groq import Groq
-import subprocess
-import os
+from gtts import gTTS
+
 
 sys.path.append(str(Path(__file__).parent.parent))
 from utils.data_loader import (
@@ -131,28 +131,21 @@ with tab1:
             # On affiche le texte à l'écran
             st.success("Verdict pour M. Garnier :")
             st.write(f"**{texte_ia}**")
-            
-            # --- LA NOUVELLE VOIX (Edge-TTS) ---
+                    
             try:
-                # 1. On écrit le texte dans un fichier temporaire (pour éviter les bugs avec les apostrophes/guillemets)
-                with open("texte_temp.txt", "w", encoding="utf-8") as f:
-                    f.write(texte_ia)
+                # 1. On transforme le texte généré en audio
+                tts = gTTS(text=texte_ia, lang='fr', tld='fr')
                 
-                # 2. On génère l'audio (Henri = voix française masculine stylée | rate = vitesse accélérée)
-                # Tu peux changer +30% en +40% ou +50% si tu veux que ça aille encore plus vite !
-                commande = 'edge-tts -f texte_temp.txt --voice fr-FR-HenriNeural --rate=+10% --write-media clash_ia.mp3'
-                subprocess.run(commande, shell=True, check=True)
+                fichier_audio = "clash_ia.mp3"
+                tts.save(fichier_audio)
                 
-                # 3. On lit le fichier généré
-                with open("clash_ia.mp3", "rb") as f:
+                with open(fichier_audio, "rb") as f:
                     st.audio(f.read(), format='audio/mpeg', autoplay=True)
-                
-                # Petit nettoyage : on supprime le fichier texte temporaire
-                if os.path.exists("texte_temp.txt"):
-                    os.remove("texte_temp.txt")
                     
             except Exception as e:
-                st.error(f"Oups, la génération vocale a planté : {e}")
+                st.error(f"Oups, le lecteur audio a planté : {e}")
+
+
             
 # ====== TAB 2: VUE D'ENSEMBLE ======
 with tab2:
