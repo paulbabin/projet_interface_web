@@ -114,7 +114,6 @@ if selected_city:
             ]
             
             if not same_dept.empty and 'population' in same_dept.columns:
-                st.write(f"📊 Villes du département {city_info['departement_code']}")
                 
                 # Top 5 des villes du département
                 top_dept = same_dept.nlargest(5, 'population')[['ville', 'population']]
@@ -144,7 +143,7 @@ if selected_city:
                 st.plotly_chart(fig_dept, use_container_width=True)
                 
                 # Statistiques du département
-                col1, col2, col3 = st.columns(3)
+                col1, col2 = st.columns(2)
                 
                 with col1:
                     st.metric(
@@ -158,18 +157,11 @@ if selected_city:
                         f"Rang de {selected_city}",
                         f"#{rank}"
                     )
-                
-                with col3:
-                    avg_pop = same_dept['population'].mean()
-                    st.metric(
-                        "Population moyenne",
-                        f"{int(avg_pop):,}"
-                    )
         
         st.divider()
         
         # Statistiques nationales
-        st.subheader("🇫🇷 Contexte National")
+        st.subheader("🏘️ Contexte National")
         
         if 'population' in city_info and 'population' in df_cities.columns:
             total_cities = len(df_cities)

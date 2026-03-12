@@ -91,6 +91,32 @@ if selected_city:
                     help="Taux de logements inoccupés"
                 )
             
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                taux_prop = housing_data.get('taux_proprietaires', 'N/A')
+                st.metric(
+                    "🏠 Propriétaires",
+                    f"{taux_prop}%" if taux_prop != 'N/A' else 'N/A',
+                    help="Taux de propriétaires parmi les résidences principales"
+                )
+            
+            with col2:
+                taux_loc = housing_data.get('taux_locataires', 'N/A')
+                st.metric(
+                    "🔑 Locataires",
+                    f"{taux_loc}%" if taux_loc != 'N/A' else 'N/A',
+                    help="Taux de locataires parmi les résidences principales"
+                )
+            
+            with col3:
+                nb_menages = housing_data.get('nombre_menages', 'N/A')
+                st.metric(
+                    "👨‍👩‍👧‍👦 Ménages",
+                    f"{nb_menages:,}" if nb_menages != 'N/A' else 'N/A',
+                    help="Nombre total de ménages"
+                )
+            
             st.divider()
             
             # Graphiques
@@ -98,7 +124,7 @@ if selected_city:
             
             with col_left:
                 # Répartition des types de résidences
-                st.subheader("🏘️ Types de résidences")
+                st.subheader("🏘️ Visualisation")
                 
                 nb_logements = housing_data.get('nombre_logements', 0)
                 nb_principales = housing_data.get('nombre_residences_principales', 0)
@@ -132,7 +158,7 @@ if selected_city:
             
             with col_right:
                 # Maisons vs Appartements
-                st.subheader("🏡 Types de logements")
+                st.subheader("")
                 
                 taux_maisons = housing_data.get('taux_maisons', 'N/A')
                 taux_appartements = housing_data.get('taux_appartements', 'N/A')
@@ -158,65 +184,8 @@ if selected_city:
                 else:
                     st.warning("⚠️ Données de répartition non disponibles")
             
-            st.divider()
-            
-            # Informations supplémentaires - Statut d'occupation
-            st.subheader("📊 Statut d'occupation des résidences principales")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                taux_prop = housing_data.get('taux_proprietaires', 'N/A')
-                st.metric(
-                    "🏠 Propriétaires",
-                    f"{taux_prop}%" if taux_prop != 'N/A' else 'N/A',
-                    help="Taux de propriétaires parmi les résidences principales"
-                )
-            
-            with col2:
-                taux_loc = housing_data.get('taux_locataires', 'N/A')
-                st.metric(
-                    "🔑 Locataires",
-                    f"{taux_loc}%" if taux_loc != 'N/A' else 'N/A',
-                    help="Taux de locataires parmi les résidences principales"
-                )
-            
-            with col3:
-                nb_menages = housing_data.get('nombre_menages', 'N/A')
-                st.metric(
-                    "👨‍👩‍👧‍👦 Ménages",
-                    f"{nb_menages:,}" if nb_menages != 'N/A' else 'N/A',
-                    help="Nombre total de ménages"
-                )
-            
-            # Graphique statut d'occupation
-            taux_prop_val = housing_data.get('taux_proprietaires', 0)
-            taux_loc_val = housing_data.get('taux_locataires', 0)
-            
-            if taux_prop_val != 'N/A' and taux_loc_val != 'N/A':
-                statut_df = pd.DataFrame({
-                    'Statut': ['Propriétaires', 'Locataires', 'Autres'],
-                    'Pourcentage': [
-                        taux_prop_val,
-                        taux_loc_val,
-                        100 - taux_prop_val - taux_loc_val
-                    ]
-                })
-                
-                fig_statut = px.pie(
-                    statut_df,
-                    values='Pourcentage',
-                    names='Statut',
-                    title="Répartition par statut d'occupation",
-                    color_discrete_sequence=['#27ae60', '#e67e22', '#95a5a6']
-                )
-                st.plotly_chart(fig_statut, use_container_width=True)
-                
-        else:
-            st.warning("⚠️ Données de logement non disponibles pour cette commune")
-
 st.markdown("""
 <div class="site-footer">
-    <p>Sources : OpenDataSoft · Caisse des Dépôts · Open Data France</p>
+    <p>Sources : OpenDataSoft · INSEE · Open Data France</p>
 </div>
 """, unsafe_allow_html=True)
